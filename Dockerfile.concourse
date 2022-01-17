@@ -1,0 +1,7 @@
+FROM onsdigital/dp-concourse-tools-ubuntu
+
+WORKDIR /app/
+
+COPY dp-frontend-interactives-controller .
+
+CMD ./dp-frontend-interactives-controller
