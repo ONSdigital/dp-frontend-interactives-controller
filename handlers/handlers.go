@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/mapper"
+	"context"
+	"fmt"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/log.go/v2/log"
+	"net/http"
 )
 
 // ClientError is an interface that can be used to retrieve the status code if a client has errored
@@ -15,41 +14,38 @@ type ClientError interface {
 	Code() int
 }
 
-func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
+func setStatusCode(r *http.Request, w http.ResponseWriter, err error) {
 	status := http.StatusInternalServerError
 	if err, ok := err.(ClientError); ok {
 		if err.Code() == http.StatusNotFound {
 			status = err.Code()
 		}
 	}
-	log.Error(req.Context(), "setting-response-status", err)
+	log.Error(r.Context(), "setting-response-status", err)
 	w.WriteHeader(status)
 }
 
-// TODO: remove hello world example handler
-// HelloWorld Handler
-func HelloWorld(cfg config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		helloWorld(w, req, cfg)
+type Handlers interface {
+	GetInteractivesHandler() func(http.ResponseWriter, *http.Request)
+	Checker() func(context.Context, *healthcheck.CheckState) error
+}
+
+func NewLocalFilesystemBacked(root http.Dir) localfs {
+	return localfs{root: root}
+}
+
+type localfs struct {
+	root http.Dir
+}
+
+func (s localfs) GetInteractivesHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, fmt.Sprintf("%s/%s", s.root, r.URL.Path[1:]))
 	}
 }
 
-func helloWorld(w http.ResponseWriter, req *http.Request, cfg config.Config) {
-	ctx := req.Context()
-	greetingsModel := mapper.HelloModel{Greeting: "Hello", Who: "World"}
-	m := mapper.HelloWorld(ctx, greetingsModel, cfg)
-
-	b, err := json.Marshal(m)
-	if err != nil {
-		setStatusCode(req, w, err)
-		return
+func (s localfs) Checker() func(context.Context, *healthcheck.CheckState) error {
+	return func(_ context.Context, s *healthcheck.CheckState) error {
+		return s.Update(healthcheck.StatusOK, "localfs healthy", 0)
 	}
-
-	_, err = w.Write(b)
-	if err != nil {
-		log.Error(ctx, "failed to write bytes for http response", err)
-		setStatusCode(req, w, err)
-		return
-	}
-	return
 }

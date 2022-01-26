@@ -6,7 +6,9 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.6.2
 	github.com/ONSdigital/dp-healthcheck v1.2.3
 	github.com/ONSdigital/dp-net v1.4.0
+	github.com/ONSdigital/dp-s3 v1.10.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
+	github.com/aws/aws-sdk-go v1.40.13
 	github.com/gorilla/mux v1.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/smartystreets/goconvey v1.7.2
@@ -14,7 +16,6 @@ require (
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.41.1 // indirect
-	github.com/aws/aws-sdk-go v1.38.15 // indirect
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
 	github.com/hokaccha/go-prettyjson v0.0.0-20210113012101-fb4e108d2519 // indirect

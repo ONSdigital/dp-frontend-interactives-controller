@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-
+	"fmt"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
@@ -25,64 +26,68 @@ type Service struct {
 	HealthCheck HealthChecker
 	Server      HTTPServer
 	ServiceList *ExternalServiceList
+	Handlers    handlers.Handlers
 }
 
 // New creates a new service
-func New() *Service {
-	return &Service{}
+func New(cfg *config.Config, serviceList *ExternalServiceList) *Service {
+	return &Service{
+		Config:      cfg,
+		ServiceList: serviceList,
+	}
 }
 
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
-func (svc *Service) Init(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceList) (err error) {
-	log.Info(ctx, "initialising service")
-
-	svc.Config = cfg
-	svc.ServiceList = serviceList
-
-	// Initialise clients
-	clients := routes.Clients{}
-
-	// Get healthcheck with checkers
-	svc.HealthCheck, err = serviceList.GetHealthCheck(cfg, BuildTime, GitCommit, Version)
+func (s *Service) Init(ctx context.Context) (err error) {
+	// Init handlers
+	s.Handlers, err = s.ServiceList.GetHandlers(s.Config)
 	if err != nil {
-		log.Fatal(ctx, "failed to create health check", err)
-		return err
+		return fmt.Errorf("failed to initialise handlers %w", err)
 	}
-	if err = svc.registerCheckers(ctx, clients); err != nil {
-		log.Error(ctx, "failed to register checkers", err)
-		return err
-	}
-	clients.HealthCheckHandler = svc.HealthCheck.Handler
 
-	// Initialise router
+	// Init healthcheck with checkers for downstream deps (do this after initing any deps!)
+	s.HealthCheck, err = s.ServiceList.GetHealthCheck(s.Config, BuildTime, GitCommit, Version)
+	if err != nil {
+		return fmt.Errorf("failed to create health check %w", err)
+	}
+	if err = s.registerCheckers(ctx); err != nil {
+		return fmt.Errorf("failed to register checkers %w", err)
+	}
+
+	// Init clients
+	clients := routes.Clients{
+		InteractivesHandler: s.Handlers.GetInteractivesHandler(),
+		HealthCheckHandler:  s.HealthCheck.Handler,
+	}
+
+	// Init router
 	r := mux.NewRouter()
-	routes.Setup(ctx, r, cfg, clients)
-	svc.Server = serviceList.GetHTTPServer(cfg.BindAddr, r)
+	routes.Setup(ctx, r, clients)
+	s.Server = s.ServiceList.GetHTTPServer(s.Config.BindAddr, r)
 
 	return nil
 }
 
 // Run starts an initialised service
-func (svc *Service) Run(ctx context.Context, svcErrors chan error) {
-	log.Info(ctx, "Starting service", log.Data{"config": svc.Config})
+func (s *Service) Run(ctx context.Context, svcErrors chan error) {
+	log.Info(ctx, "Starting service", log.Data{"config": s.Config})
 
 	// Start healthcheck
-	svc.HealthCheck.Start(ctx)
+	s.HealthCheck.Start(ctx)
 
 	// Start HTTP server
 	log.Info(ctx, "Starting server")
 	go func() {
-		if err := svc.Server.ListenAndServe(); err != nil {
-			log.Fatal(ctx, "failed to start http listen and serve", err)
-			svcErrors <- err
+		if err := s.Server.ListenAndServe(); err != nil {
+			svcErrors <- fmt.Errorf("failed to start http listen and serve %w", err)
 		}
 	}()
 }
 
 // Close gracefully shuts the service down in the required order, with timeout
-func (svc *Service) Close(ctx context.Context) error {
+func (s *Service) Close(ctx context.Context) error {
 	log.Info(ctx, "commencing graceful shutdown")
-	ctx, cancel := context.WithTimeout(ctx, svc.Config.GracefulShutdownTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.Config.GracefulShutdownTimeout)
 	hasShutdownError := false
 
 	go func() {
@@ -90,12 +95,12 @@ func (svc *Service) Close(ctx context.Context) error {
 
 		// stop healthcheck, as it depends on everything else
 		log.Info(ctx, "stop health checkers")
-		svc.HealthCheck.Stop()
+		s.HealthCheck.Stop()
 
 		// TODO: close any backing services here, e.g. client connections to databases
 
 		// stop any incoming requests
-		if err := svc.Server.Shutdown(ctx); err != nil {
+		if err := s.Server.Shutdown(ctx); err != nil {
 			log.Error(ctx, "failed to shutdown http server", err)
 			hasShutdownError = true
 		}
@@ -121,13 +126,16 @@ func (svc *Service) Close(ctx context.Context) error {
 	return nil
 }
 
-func (svc *Service) registerCheckers(ctx context.Context, c routes.Clients) (err error) {
+func (s *Service) registerCheckers(ctx context.Context) (err error) {
 	hasErrors := false
 
-	// TODO: Add health checks here
+	if err = s.HealthCheck.AddCheck("handlers", s.Handlers.Checker()); err != nil {
+		hasErrors = true
+		log.Error(ctx, "error adding check for handlers", err)
+	}
 
 	if hasErrors {
-		return errors.New("Error(s) registering checkers for healthcheck")
+		return errors.New("error(s) registering checkers for healthcheck")
 	}
 
 	return nil

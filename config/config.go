@@ -6,14 +6,13 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// TODO: remove hello world example config option
 // Config represents service configuration for dp-frontend-interactives-controller
 type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
 	GracefulShutdownTimeout    time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
-	HelloWorldEmphasise        bool          `envconfig:"HELLO_WORLD_EMPHASISE"`
+	ServeFromLocalDir          string        `envconfig:"SERVE_FROM_LOCAL_DIR"`
 }
 
 var cfg *Config
@@ -30,7 +29,7 @@ func Get() (*Config, error) {
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
-		HelloWorldEmphasise:        true,
+		ServeFromLocalDir:          "",
 	}
 
 	return cfg, envconfig.Process("", cfg)

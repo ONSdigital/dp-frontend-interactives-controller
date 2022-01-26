@@ -14,8 +14,7 @@ type testCliError struct{}
 func (e *testCliError) Error() string { return "client error" }
 func (e *testCliError) Code() int     { return http.StatusNotFound }
 
-func TestUnitHandlers(t *testing.T) {
-
+func TestHandlers(t *testing.T) {
 	Convey("test setStatusCode", t, func() {
 
 		Convey("test status code handles 404 response from client", func() {
@@ -38,5 +37,4 @@ func TestUnitHandlers(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
 		})
 	})
-
 }

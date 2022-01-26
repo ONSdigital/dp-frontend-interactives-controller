@@ -2,12 +2,19 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
+	s3client "github.com/ONSdigital/dp-s3"
 )
 
 // ExternalServiceList holds the initialiser and initialisation state of external services.
@@ -32,6 +39,24 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 	return s
 }
 
+// GetHandlers creates handlers depending on config: localfs, s3, (todo) static-file-service
+func (e *ExternalServiceList) GetHandlers(cfg *config.Config) (handlers.Handlers, error) {
+	var h handlers.Handlers
+
+	if len(cfg.ServeFromLocalDir) > 0 {
+		h = handlers.NewLocalFilesystemBacked(http.Dir(cfg.ServeFromLocalDir))
+	} else {
+		sourceS3bucket, err := e.Init.DoGetS3Bucket()
+		if err != nil {
+			return nil, fmt.Errorf("could not get s3 bucket: %w", err)
+		}
+
+		h = handlers.NewS3Backed(sourceS3bucket)
+	}
+
+	return h, nil
+}
+
 // GetHealthClient returns a healthclient for the provided URL
 func (e *ExternalServiceList) GetHealthClient(name, url string) *health.Client {
 	return e.Init.DoGetHealthClient(name, url)
@@ -52,6 +77,33 @@ func (e *Init) DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer 
 	s := dphttp.NewServer(bindAddr, router)
 	s.HandleOSSignals = false
 	return s
+}
+
+// DoGetS3Bucket obtains a new S3 bucket client, or minio client if a non-empty LocalObjectStore is provided
+func (e *Init) DoGetS3Bucket() (storage.S3Bucket, error) {
+	//TODO awsify this...e.g. https://github.com/ONSdigital/dp-download-service/blob/c750eae9e7eaea003420aec432bc9a7322a3782c/service/external/external.go#L49
+	//if cfg.LocalObjectStore != "" {
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials("minio-access-key", "minio-secret-key", ""),
+		Endpoint:         aws.String("http://localhost:9001"),
+		Region:           aws.String("eu-west-1"),
+		DisableSSL:       aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+
+	s, err := session.NewSession(s3Config)
+	if err != nil {
+		return nil, fmt.Errorf("could not create s3 session: %w", err)
+	}
+	s3 := s3client.NewClientWithSession("private-bucket", s)
+	//}
+
+	//s3, err := s3client.NewClient(cfg.AwsRegion, cfg.BucketName)
+	//if err != nil {
+	//	return nil, fmt.Errorf("could not create s3 client: %w", err)
+	//}
+
+	return s3, nil
 }
 
 // DoGetHealthClient creates a new Health Client for the provided name and url

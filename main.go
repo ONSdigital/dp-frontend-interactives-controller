@@ -28,10 +28,6 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	// Create service initialiser and an error channel for service errors
-	svcList := service.NewServiceList(&service.Init{})
-	svcErrors := make(chan error, 1)
-
 	// Read config
 	cfg, err := config.Get()
 	if err != nil {
@@ -41,9 +37,13 @@ func run(ctx context.Context) error {
 
 	log.Info(ctx, "got service configuration", log.Data{"config": cfg})
 
+	// Create service initialiser and an error channel for service errors
+	svcList := service.NewServiceList(&service.Init{})
+	svcErrors := make(chan error, 1)
+
 	// Run service
-	svc := service.New()
-	if err := svc.Init(ctx, cfg, svcList); err != nil {
+	svc := service.New(cfg, svcList)
+	if err := svc.Init(ctx); err != nil {
 		log.Error(ctx, "failed to initialise service", err)
 		return err
 	}
