@@ -3,18 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
+	"github.com/ONSdigital/dp-api-clients-go/v2/health"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	dphttp "github.com/ONSdigital/dp-net/http"
+	s3client "github.com/ONSdigital/dp-s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"net/http"
-
-	"github.com/ONSdigital/dp-api-clients-go/v2/health"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dphttp "github.com/ONSdigital/dp-net/http"
-	s3client "github.com/ONSdigital/dp-s3"
 )
 
 // ExternalServiceList holds the initialiser and initialisation state of external services.
@@ -40,21 +38,21 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 }
 
 // GetHandlers creates handlers depending on config: localfs, s3, (todo) static-file-service
-func (e *ExternalServiceList) GetHandlers(cfg *config.Config) (handlers.Handlers, error) {
-	var h handlers.Handlers
+func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+	var sp storage.Provider
 
 	if len(cfg.ServeFromLocalDir) > 0 {
-		h = handlers.NewLocalFilesystemBacked(http.Dir(cfg.ServeFromLocalDir))
+		sp = storage.NewLocalFilesystemProvider(http.Dir(cfg.ServeFromLocalDir))
 	} else {
 		sourceS3bucket, err := e.Init.DoGetS3Bucket()
 		if err != nil {
 			return nil, fmt.Errorf("could not get s3 bucket: %w", err)
 		}
 
-		h = handlers.NewS3Backed(sourceS3bucket)
+		sp = storage.NewS3Provider(sourceS3bucket)
 	}
 
-	return h, nil
+	return sp, nil
 }
 
 // GetHealthClient returns a healthclient for the provided URL

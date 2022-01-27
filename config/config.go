@@ -13,6 +13,7 @@ type Config struct {
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	ServeFromLocalDir          string        `envconfig:"SERVE_FROM_LOCAL_DIR"`
+	APIRouterURL               string        `envconfig:"API_ROUTER_URL"`
 }
 
 var cfg *Config
@@ -30,6 +31,7 @@ func Get() (*Config, error) {
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		ServeFromLocalDir:          "",
+		APIRouterURL:               "http://localhost:23200/v1",
 	}
 
 	return cfg, envconfig.Process("", cfg)

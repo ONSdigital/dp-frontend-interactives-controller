@@ -240,7 +240,7 @@ func TestInitFailure(t *testing.T) {
 						Convey("And all checks try to register", func() {
 							So(mockServiceList.HealthCheck, ShouldBeTrue)
 							So(len(hcMockAddFail.AddCheckCalls()), ShouldEqual, 1)
-							So(hcMockAddFail.AddCheckCalls()[0].Name, ShouldResemble, "handlers")
+							So(hcMockAddFail.AddCheckCalls()[0].Name, ShouldResemble, "storage provider")
 						})
 					})
 				})

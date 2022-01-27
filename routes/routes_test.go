@@ -1,7 +1,6 @@
 package routes_test
 
 import (
-	"context"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -18,11 +17,10 @@ var (
 )
 
 func TestRoutes(t *testing.T) {
+	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 
-	Convey("Given clients setup to return StatusNoContent[204] for all handlers", t, func() {
-		clients := routes.Clients{HealthCheckHandler: statusNoContentFunc, InteractivesHandler: statusNoContentFunc}
 		r := mux.NewRouter()
-		routes.Setup(context.TODO(), r, clients)
+		routes.Setup(r, statusNoContentFunc, statusNoContentFunc)
 
 		Convey("when "+routes.HealthEndpoint+" is called", func() {
 			req := httptest.NewRequest("GET", routes.HealthEndpoint, nil)
@@ -35,8 +33,8 @@ func TestRoutes(t *testing.T) {
 			})
 		})
 
-		Convey("when "+routes.InteractivesEndpoint+" is called", func() {
-			req := httptest.NewRequest("GET", routes.InteractivesEndpoint, nil)
+		Convey("when a GET is called on any path", func() {
+			req := httptest.NewRequest("GET", "/method-supported", nil)
 			w := httptest.NewRecorder()
 
 			r.ServeHTTP(w, req)
@@ -46,14 +44,14 @@ func TestRoutes(t *testing.T) {
 			})
 		})
 
-		Convey("when an unknown endpoint is called", func() {
-			req := httptest.NewRequest("GET", "/endpoint-does-not-exist", nil)
+		Convey("when another method is called", func() {
+			req := httptest.NewRequest("POST", "/method-not-supported", nil)
 			w := httptest.NewRecorder()
 
 			r.ServeHTTP(w, req)
 
-			Convey("then 404 is returned", func() {
-				So(w.Code, ShouldEqual, http.StatusNotFound)
+			Convey("then 405 is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
 			})
 		})
 	})

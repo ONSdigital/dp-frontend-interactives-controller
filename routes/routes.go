@@ -1,27 +1,24 @@
 package routes
 
 import (
-	"context"
-	"net/http"
-
-	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/gorilla/mux"
+	"net/http"
 )
 
 const (
-	HealthEndpoint       = "/health"
-	InteractivesEndpoint = "/interactives"
+	HealthEndpoint = "/health"
 )
 
 // Clients - struct containing all the clients for the controller
 type Clients struct {
-	HealthCheckHandler  func(w http.ResponseWriter, req *http.Request)
-	InteractivesHandler func(w http.ResponseWriter, req *http.Request)
+	Storage storage.Provider
+	Api     stubs.InteractivesAPIClient
 }
 
 // Setup registers routes for the service
-func Setup(ctx context.Context, r *mux.Router, c Clients) {
-	log.Info(ctx, "adding routes")
-	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(c.HealthCheckHandler)
-	r.StrictSlash(true).PathPrefix(InteractivesEndpoint).HandlerFunc(c.InteractivesHandler)
+func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
+	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
+	r.StrictSlash(true).Path("/{uri:.*}").Methods("GET").HandlerFunc(interactivesHandler)
 }

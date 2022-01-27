@@ -7,6 +7,8 @@ import (
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 )
@@ -22,11 +24,11 @@ var (
 
 // Service contains the healthcheck, server and serviceList for the controller
 type Service struct {
-	Config      *config.Config
-	HealthCheck HealthChecker
-	Server      HTTPServer
-	ServiceList *ExternalServiceList
-	Handlers    handlers.Handlers
+	Config          *config.Config
+	HealthCheck     HealthChecker
+	Server          HTTPServer
+	ServiceList     *ExternalServiceList
+	StorageProvider storage.Provider
 }
 
 // New creates a new service
@@ -39,13 +41,18 @@ func New(cfg *config.Config, serviceList *ExternalServiceList) *Service {
 
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (s *Service) Init(ctx context.Context) (err error) {
-	// Init handlers
-	s.Handlers, err = s.ServiceList.GetHandlers(s.Config)
+
+	//todo https://github.com/ONSdigital/dp-frontend-articles-controller/blob/72572622e94dd23d25c974cf3937aafa4eb38207/service/service.go#L47
+	// Get health client for api router
+	//apiRouterHealthClient := s.ServiceList.GetHealthClient("api-router", s.Config.APIRouterURL)
+
+	// Init storage provider
+	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config)
 	if err != nil {
-		return fmt.Errorf("failed to initialise handlers %w", err)
+		return fmt.Errorf("failed to initialise storage provider %w", err)
 	}
 
-	// Init healthcheck with checkers for downstream deps (do this after initing any deps!)
+	// Init healthcheck with checkers for downstream deps (do this after initing any deps that need checking!)
 	s.HealthCheck, err = s.ServiceList.GetHealthCheck(s.Config, BuildTime, GitCommit, Version)
 	if err != nil {
 		return fmt.Errorf("failed to create health check %w", err)
@@ -56,13 +63,13 @@ func (s *Service) Init(ctx context.Context) (err error) {
 
 	// Init clients
 	clients := routes.Clients{
-		InteractivesHandler: s.Handlers.GetInteractivesHandler(),
-		HealthCheckHandler:  s.HealthCheck.Handler,
+		Storage: s.StorageProvider,
+		Api:     &stubs.StubbedInteractivesAPIClient{},
 	}
 
 	// Init router
 	r := mux.NewRouter()
-	routes.Setup(ctx, r, clients)
+	routes.Setup(r, s.HealthCheck.Handler, handlers.Interactives(clients))
 	s.Server = s.ServiceList.GetHTTPServer(s.Config.BindAddr, r)
 
 	return nil
@@ -129,9 +136,9 @@ func (s *Service) Close(ctx context.Context) error {
 func (s *Service) registerCheckers(ctx context.Context) (err error) {
 	hasErrors := false
 
-	if err = s.HealthCheck.AddCheck("handlers", s.Handlers.Checker()); err != nil {
+	if err = s.HealthCheck.AddCheck("storage provider", s.StorageProvider.Checker()); err != nil {
 		hasErrors = true
-		log.Error(ctx, "error adding check for handlers", err)
+		log.Error(ctx, "error adding check for storage provider", err)
 	}
 
 	if hasErrors {

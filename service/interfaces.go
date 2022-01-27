@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 

@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"context"
-	"fmt"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/log.go/v2/log"
+	"io"
+	"mime"
 	"net/http"
+	"path/filepath"
 )
 
 // ClientError is an interface that can be used to retrieve the status code if a client has errored
@@ -25,27 +28,47 @@ func setStatusCode(r *http.Request, w http.ResponseWriter, err error) {
 	w.WriteHeader(status)
 }
 
-type Handlers interface {
-	GetInteractivesHandler() func(http.ResponseWriter, *http.Request)
-	Checker() func(context.Context, *healthcheck.CheckState) error
-}
-
-func NewLocalFilesystemBacked(root http.Dir) localfs {
-	return localfs{root: root}
-}
-
-type localfs struct {
-	root http.Dir
-}
-
-func (s localfs) GetInteractivesHandler() func(http.ResponseWriter, *http.Request) {
+func Interactives(clients routes.Clients) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, fmt.Sprintf("%s/%s", s.root, r.URL.Path[1:]))
+		streamFromStorageProvider(w, r, clients.Storage)
 	}
 }
 
-func (s localfs) Checker() func(context.Context, *healthcheck.CheckState) error {
-	return func(_ context.Context, s *healthcheck.CheckState) error {
-		return s.Update(healthcheck.StatusOK, "localfs healthy", 0)
+func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, storage storage.Provider) {
+	ctx := r.Context()
+
+	//TODO get metadata from API
+
+	//TODO s3Path from api [for testing bucket/id/./...]
+	path := r.URL.Path
+
+	//stream content to response
+	var readCloser io.ReadCloser
+	readCloser, err := storage.Get(path)
+	if err != nil {
+		//todo 404 from error pass back upstream?
+		log.Error(ctx, "failed to get stream object from S3 client", err)
+		setStatusCode(r, w, err)
+		return
+	}
+	defer closeAndLogError(ctx, readCloser)
+
+	//note: has to be before writing body. ref: https://pkg.go.dev/net/http#ResponseWriter.Write
+	ctype := mime.TypeByExtension(filepath.Ext(path))
+	if ctype != "" {
+		w.Header().Set("Content-Type", ctype)
+	}
+
+	_, err = io.Copy(w, readCloser)
+	if err != nil {
+		log.Error(ctx, "failed to write response", err)
+		setStatusCode(r, w, err)
+		return
+	}
+}
+
+func closeAndLogError(ctx context.Context, closer io.Closer) {
+	if err := closer.Close(); err != nil {
+		log.Error(ctx, "error closing io.Closer", err)
 	}
 }
