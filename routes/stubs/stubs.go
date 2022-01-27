@@ -5,16 +5,21 @@ import "context"
 //todo this should come from: https://github.com/ONSdigital/dp-api-clients-go
 
 type InteractivesAPIGetResponse struct {
-	slug string
+	metadata map[string]string
 }
 
 // InteractivesApiClient is an interface for the Interactives API client
 type InteractivesAPIClient interface {
-	Get(ctx context.Context, userAccessToken, collectionID, lang, uri string) (*InteractivesAPIGetResponse, error)
+	Get(ctx context.Context, id string) (*InteractivesAPIGetResponse, error)
 }
 
 type StubbedInteractivesAPIClient struct{}
 
-func (c StubbedInteractivesAPIClient) Get(ctx context.Context, userAccessToken, collectionID, lang, uri string) (*InteractivesAPIGetResponse, error) {
-	return &InteractivesAPIGetResponse{}, nil
+func (c StubbedInteractivesAPIClient) Get(_ context.Context, id string) (*InteractivesAPIGetResponse, error) {
+	return &InteractivesAPIGetResponse{
+		metadata: map[string]string{
+			"id":                  id,
+			"human_readable_slug": "an_url_slug",
+		},
+	}, nil
 }

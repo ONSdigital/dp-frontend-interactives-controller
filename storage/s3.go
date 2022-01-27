@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-func NewS3Provider(s3bucket S3Bucket) s3 {
+func NewFromS3Bucket(s3bucket S3Bucket) s3 {
 	return s3{s3bucket: s3bucket}
 }
 

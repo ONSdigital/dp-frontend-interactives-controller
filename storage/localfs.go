@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func NewLocalFilesystemProvider(root http.Dir) localfs {
+func NewFromLocalFilesystem(root http.Dir) localfs {
 	return localfs{root: root}
 }
 

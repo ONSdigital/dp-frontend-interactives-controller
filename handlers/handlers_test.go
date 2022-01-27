@@ -27,7 +27,7 @@ type testCliError struct{}
 func (e *testCliError) Error() string { return "client error" }
 func (e *testCliError) Code() int     { return http.StatusNotFound }
 
-func TestHandlersSetStatusCode(t *testing.T) {
+func TestSetStatusCode(t *testing.T) {
 	Convey("test setStatusCode", t, func() {
 
 		Convey("test status code handles 404 response from client", func() {
@@ -52,7 +52,7 @@ func TestHandlersSetStatusCode(t *testing.T) {
 	})
 }
 
-func TestS3Handlers(t *testing.T) {
+func TestInteractives(t *testing.T) {
 
 	Convey("Given a valid s3 bucket and provider", t, func() {
 		s3BucketMock := &mocks_storage.S3BucketMock{
@@ -65,7 +65,7 @@ func TestS3Handlers(t *testing.T) {
 				return io.NopCloser(r), &contentLen, nil
 			},
 		}
-		storageProvider := storage.NewS3Provider(s3BucketMock)
+		storageProvider := storage.NewFromS3Bucket(s3BucketMock)
 
 		Convey("a request to a valid s3 path is made", func() {
 

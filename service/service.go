@@ -42,7 +42,7 @@ func New(cfg *config.Config, serviceList *ExternalServiceList) *Service {
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (s *Service) Init(ctx context.Context) (err error) {
 
-	//todo https://github.com/ONSdigital/dp-frontend-articles-controller/blob/72572622e94dd23d25c974cf3937aafa4eb38207/service/service.go#L47
+	//todo ref: https://github.com/ONSdigital/dp-frontend-articles-controller/blob/72572622e94dd23d25c974cf3937aafa4eb38207/service/service.go#L47
 	// Get health client for api router
 	//apiRouterHealthClient := s.ServiceList.GetHealthClient("api-router", s.Config.APIRouterURL)
 

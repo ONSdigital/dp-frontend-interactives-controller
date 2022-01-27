@@ -42,14 +42,14 @@ func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Pr
 	var sp storage.Provider
 
 	if len(cfg.ServeFromLocalDir) > 0 {
-		sp = storage.NewLocalFilesystemProvider(http.Dir(cfg.ServeFromLocalDir))
+		sp = storage.NewFromLocalFilesystem(http.Dir(cfg.ServeFromLocalDir))
 	} else {
 		sourceS3bucket, err := e.Init.DoGetS3Bucket()
 		if err != nil {
 			return nil, fmt.Errorf("could not get s3 bucket: %w", err)
 		}
 
-		sp = storage.NewS3Provider(sourceS3bucket)
+		sp = storage.NewFromS3Bucket(sourceS3bucket)
 	}
 
 	return sp, nil

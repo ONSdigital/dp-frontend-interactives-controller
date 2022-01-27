@@ -20,5 +20,5 @@ type Clients struct {
 // Setup registers routes for the service
 func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
 	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
-	r.StrictSlash(true).Path("/{uri:.*}").Methods("GET").HandlerFunc(interactivesHandler)
+	r.StrictSlash(true).Path("/{uri:.*}").Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 }
