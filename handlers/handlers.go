@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/gorilla/mux"
 	"io"
 	"mime"
 	"net/http"
@@ -30,24 +30,33 @@ func setStatusCode(r *http.Request, w http.ResponseWriter, err error) {
 
 func Interactives(clients routes.Clients) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		streamFromStorageProvider(w, r, clients.Storage)
+		streamFromStorageProvider(w, r, clients)
 	}
 }
 
-func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, storage storage.Provider) {
+func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients routes.Clients) {
 	ctx := r.Context()
 
 	//TODO get metadata from API
+	vars := mux.Vars(r)
+	id := vars[routes.ResourceIdVarKey]
+	_, err := clients.Api.Get(r.Context(), id)
+	if err != nil {
+		//todo 404 from error pass back upstream?
+		log.Error(ctx, "failed to get from interactives api", err)
+		setStatusCode(r, w, err)
+		return
+	}
 
-	//TODO s3Path from api [for testing bucket/id/./...]
+	//todo - from interactive
 	path := r.URL.Path
 
 	//stream content to response
 	var readCloser io.ReadCloser
-	readCloser, err := storage.Get(path)
+	readCloser, err = clients.Storage.Get(path)
 	if err != nil {
 		//todo 404 from error pass back upstream?
-		log.Error(ctx, "failed to get stream object from S3 client", err)
+		log.Error(ctx, "failed to get stream from storage provider", err)
 		setStatusCode(r, w, err)
 		return
 	}

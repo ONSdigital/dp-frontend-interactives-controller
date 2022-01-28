@@ -1,6 +1,7 @@
 package routes_test
 
 import (
+	"fmt"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -16,9 +17,34 @@ var (
 	}
 )
 
-func TestRoutes(t *testing.T) {
-	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
+func TestSetup(t *testing.T) {
+	Convey("Given setup then 5 routes are applied", t, func() {
+		r := mux.NewRouter()
+		routes.Setup(r, statusNoContentFunc, statusNoContentFunc)
 
+		routes := 0
+		err := r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+			_, err := route.GetPathTemplate()
+			if err != nil {
+				return err
+			}
+			routes++
+			return nil
+		})
+
+		So(err, ShouldBeNil)
+		So(routes, ShouldEqual, 6) //6 with static
+	})
+}
+
+func TestRoutes(t *testing.T) {
+	resourceType := "interactives"
+	validResourceId := "ABCDE"
+	validSlug := "A-nice-readable-Slug"
+
+	type test struct{ method, url string }
+
+	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 		r := mux.NewRouter()
 		routes.Setup(r, statusNoContentFunc, statusNoContentFunc)
 
@@ -33,26 +59,60 @@ func TestRoutes(t *testing.T) {
 			})
 		})
 
-		Convey("when a GET is called on any path", func() {
-			req := httptest.NewRequest("GET", "/method-supported", nil)
+		Convey("when a mapped route is called with trailing slash", func() {
+			urlWithTrailingSlash := fmt.Sprintf("/%s/%s-%s/", resourceType, validSlug, validResourceId)
+			req := httptest.NewRequest(http.MethodGet, urlWithTrailingSlash, nil)
 			w := httptest.NewRecorder()
 
 			r.ServeHTTP(w, req)
 
-			Convey("then 204 is returned", func() {
-				So(w.Code, ShouldEqual, http.StatusNoContent)
+			Convey("then 301 is returned for nonslash url", func() {
+				So(w.Header().Get("location"), ShouldEqual, urlWithTrailingSlash[:len(urlWithTrailingSlash)-1])
+				So(w.Code, ShouldEqual, http.StatusMovedPermanently)
 			})
 		})
 
-		Convey("when another method is called", func() {
-			req := httptest.NewRequest("POST", "/method-not-supported", nil)
-			w := httptest.NewRecorder()
+		Convey("when a mapped route is called", func() {
+			cases := map[string]test{
+				"slug-and-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, validResourceId)},
+				"embedded-slug-and-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, validResourceId)},
+				"resource-id":                   {http.MethodGet, fmt.Sprintf("/%s/%s", resourceType, validResourceId)},
+				"embedded-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s/embed", resourceType, validResourceId)},
+			}
 
-			r.ServeHTTP(w, req)
+			for name, testReq := range cases {
+				req := httptest.NewRequest(testReq.method, testReq.url, nil)
+				w := httptest.NewRecorder()
 
-			Convey("then 405 is returned", func() {
-				So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
-			})
+				r.ServeHTTP(w, req)
+
+				Convey(fmt.Sprintf("then 204 is returned for %s", name), func() {
+					So(w.Code, ShouldEqual, http.StatusNoContent)
+				})
+			}
+		})
+
+		Convey("when am unsupported route is called", func() {
+			cases := map[string]test{
+				"not-supported":     {http.MethodGet, "/not-supported"},
+				"bad_slug_1":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "", validResourceId)},
+				"bad_slug_2":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "under_score", validResourceId)},
+				"bad_slug_3":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "full.stop", validResourceId)},
+				"bad_resource_id_1": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "")},
+				"bad_resource_id_2": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abcde")},
+				"bad_resource_id_3": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abc-de")},
+			}
+
+			for name, testReq := range cases {
+				req := httptest.NewRequest(testReq.method, testReq.url, nil)
+				w := httptest.NewRecorder()
+
+				r.ServeHTTP(w, req)
+
+				Convey(fmt.Sprintf("then 404 is returned for %s", name), func() {
+					So(w.Code, ShouldEqual, http.StatusNotFound)
+				})
+			}
 		})
 	})
 }

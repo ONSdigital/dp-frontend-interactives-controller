@@ -31,7 +31,7 @@ func run(ctx context.Context) error {
 	// Read config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Error(ctx, "unable to retrieve service configuration", err)
+		log.Fatal(ctx, "failed to retrieve service configuration", err)
 		return err
 	}
 
@@ -44,7 +44,7 @@ func run(ctx context.Context) error {
 	// Run service
 	svc := service.New(cfg, svcList)
 	if err := svc.Init(ctx); err != nil {
-		log.Error(ctx, "failed to initialise service", err)
+		log.Fatal(ctx, "failed to initialise service", err)
 		return err
 	}
 	svc.Run(ctx, svcErrors)
