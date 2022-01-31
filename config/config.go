@@ -16,16 +16,9 @@ type Config struct {
 	APIRouterURL               string        `envconfig:"API_ROUTER_URL"`
 }
 
-var cfg *Config
-
-// Get returns the default config with any modifications through environment
-// variables
+// Get returns the default config with any modifications through environment vars
 func Get() (*Config, error) {
-	if cfg != nil {
-		return cfg, nil
-	}
-
-	cfg = &Config{
+	cfg := &Config{
 		BindAddr:                   ":27300",
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        30 * time.Second,
