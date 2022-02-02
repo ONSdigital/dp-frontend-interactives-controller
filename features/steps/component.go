@@ -26,13 +26,12 @@ type Chrome struct {
 
 type Component struct {
 	componenttest.ErrorFeature
-	svc          *service.Service
-	errorChan    chan error
-	HTTPServer   *http.Server
-	ctx          context.Context
-	chrome       Chrome
-	SignedInUser string
-	fakeRequest  *httpfake.Request
+	svc         *service.Service
+	errorChan   chan error
+	HTTPServer  *http.Server
+	ctx         context.Context
+	chrome      Chrome
+	fakeRequest *httpfake.Request
 }
 
 func NewComponent() (*Component, error) {
@@ -67,7 +66,7 @@ func (c *Component) Reset() *Component {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.DisableGPU,
 		// set this to false to be able to watch the browser in action
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 	)
 
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)

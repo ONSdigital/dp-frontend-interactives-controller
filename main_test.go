@@ -11,7 +11,10 @@ import (
 	"github.com/cucumber/godog/colors"
 )
 
-var componentFlag = flag.Bool("component", false, "perform component tests")
+var (
+	componentFlag = flag.Bool("component", false, "perform component tests")
+	doNothing     = func() {}
+)
 
 type ComponentTest struct {
 	testingT *testing.T
@@ -36,8 +39,8 @@ func (c *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 }
 
 func (c *ComponentTest) InitializeTestSuite(ctx *godog.TestSuiteContext) {
-	ctx.BeforeSuite(func() {})
-	ctx.AfterSuite(func() {})
+	ctx.BeforeSuite(doNothing)
+	ctx.AfterSuite(doNothing)
 }
 
 func TestComponent(t *testing.T) {
@@ -56,7 +59,6 @@ func TestComponent(t *testing.T) {
 			TestSuiteInitializer: f.InitializeTestSuite,
 			Options:              &opts,
 		}.Run()
-
 	} else {
 		t.Skip("component flag required to run component tests")
 	}
