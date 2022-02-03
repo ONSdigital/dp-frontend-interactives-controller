@@ -2,8 +2,9 @@ package storage
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
+
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 //go:generate moq -out mocks/provider.go -pkg mocks_storage . Provider

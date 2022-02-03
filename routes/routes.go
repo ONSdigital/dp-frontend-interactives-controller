@@ -2,10 +2,11 @@ package routes
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 const (

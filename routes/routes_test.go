@@ -2,11 +2,12 @@ package routes_test
 
 import (
 	"fmt"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	"github.com/gorilla/mux"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

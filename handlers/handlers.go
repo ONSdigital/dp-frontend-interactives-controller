@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/gorilla/mux"
 	"io"
 	"mime"
 	"net/http"
 	"path/filepath"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/gorilla/mux"
 )
 
 // ClientError is an interface that can be used to retrieve the status code if a client has errored
