@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/features/steps"
 	"os"
 	"testing"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/features/steps"
 
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"

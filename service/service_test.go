@@ -3,6 +3,13 @@ package service_test
 import (
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
@@ -10,12 +17,6 @@ import (
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	mocks_storage "github.com/ONSdigital/dp-frontend-interactives-controller/storage/mocks"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"io"
-	"net/http"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

@@ -5,8 +5,9 @@ package mocks_service
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 	"sync"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 )
 
 // Ensure, that HTTPServerMock does implement service.HTTPServer.

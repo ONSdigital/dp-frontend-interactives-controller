@@ -2,8 +2,9 @@ package storage
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
+
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 func NewFromS3Bucket(s3bucket S3Bucket) s3 {

@@ -3,10 +3,11 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 func NewFromLocalFilesystem(root http.Dir) localfs {

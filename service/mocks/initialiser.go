@@ -4,12 +4,13 @@
 package mocks_service
 
 import (
+	"net/http"
+	"sync"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
-	"net/http"
-	"sync"
 )
 
 // Ensure, that InitialiserMock does implement service.Initialiser.

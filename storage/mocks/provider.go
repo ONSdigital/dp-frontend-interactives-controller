@@ -5,10 +5,11 @@ package mocks_storage
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
 	"sync"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 // Ensure, that ProviderMock does implement storage.Provider.

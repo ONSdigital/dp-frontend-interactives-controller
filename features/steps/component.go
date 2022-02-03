@@ -2,6 +2,12 @@ package steps
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	componenttest "github.com/ONSdigital/dp-component-test"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
@@ -11,11 +17,6 @@ import (
 	dplog "github.com/ONSdigital/log.go/log"
 	"github.com/chromedp/chromedp"
 	"github.com/maxcnunes/httpfake"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 type Chrome struct {
