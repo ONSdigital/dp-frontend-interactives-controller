@@ -25,6 +25,7 @@ type Clients struct {
 // Setup registers routes for the service
 func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
 	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
+
 	// slug and resource_id (+ /embed)
 	r.StrictSlash(true).Path(getPath(false, true)).Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 	r.StrictSlash(true).Path(getPath(true, true)).Methods(http.MethodGet).HandlerFunc(interactivesHandler)
@@ -33,13 +34,13 @@ func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerF
 	r.StrictSlash(true).Path(getPath(true, false)).Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 
 	//todo enabled by feature flag? for testkit - test for disabled by default
-	r.StrictSlash(true).PathPrefix("/static").Methods(http.MethodGet).HandlerFunc(interactivesHandler)
+	r.StrictSlash(true).PathPrefix("/interactives").Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 }
 
 func getPath(withEmbed, withSlug bool) string {
-	resourceTypeKey := "dp_frontend_router_mapping" //this is driven from dp-frontend-router (should be 'interactives')
+	resourceTypeKey := "interactives" //this is driven from dp-frontend-router (should be 'interactives')
 
-	resourceIdPattern := "[A-Z]+" //todo define
+	resourceIdPattern := "[a-z0-9]{8}"
 	url := fmt.Sprintf("/{%s}/{%s:%s}", resourceTypeKey, ResourceIdVarKey, resourceIdPattern)
 	if withSlug {
 		slugKeyPattern := "[a-zA-Z0-9\\-]+"
