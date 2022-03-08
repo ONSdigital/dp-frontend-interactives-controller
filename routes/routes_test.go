@@ -2,6 +2,7 @@ package routes_test
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,9 +37,9 @@ func checkPathVariablesHandler(t *testing.T, slug, resourceId string) func(w htt
 }
 
 func TestSetup(t *testing.T) {
-	Convey("Given setup then 5 routes are applied", t, func() {
+	Convey("Given default config then 5 routes are applied", t, func() {
 		r := mux.NewRouter()
-		routes.Setup(r, statusNoContentFunc, statusNoContentFunc)
+		routes.Setup(&config.Config{}, r, statusNoContentFunc, statusNoContentFunc)
 
 		routes := 0
 		err := r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
@@ -51,18 +52,19 @@ func TestSetup(t *testing.T) {
 		})
 
 		So(err, ShouldBeNil)
-		So(routes, ShouldEqual, 6) //6 with static
+		So(routes, ShouldEqual, 5)
 	})
 }
 
 func TestRoutes(t *testing.T) {
+	cfg := &config.Config{}
 	resourceType := "interactives"
 	validResourceId := "abcde123"
 	validSlug := "nice-readable-slug"
 
 	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 		r := mux.NewRouter()
-		routes.Setup(r, statusNoContentFunc, statusNoContentFunc)
+		routes.Setup(cfg, r, statusNoContentFunc, statusNoContentFunc)
 
 		Convey("when "+routes.HealthEndpoint+" is called", func() {
 			req := httptest.NewRequest("GET", routes.HealthEndpoint, nil)
@@ -104,10 +106,10 @@ func TestRoutes(t *testing.T) {
 
 				req := httptest.NewRequest(testReq.method, testReq.url, nil)
 				w := httptest.NewRecorder()
-		
+
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId)
 				r := mux.NewRouter()
-				routes.Setup(r, nil, h)
+				routes.Setup(cfg, r, nil, h)
 
 				r.ServeHTTP(w, req)
 
@@ -134,7 +136,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId)
 				r := mux.NewRouter()
-				routes.Setup(r, nil, h)
+				routes.Setup(cfg, r, nil, h)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 404 is returned for %s", name), func() {

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"net/http"
 
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
@@ -23,7 +24,7 @@ type Clients struct {
 }
 
 // Setup registers routes for the service
-func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
+func Setup(cfg *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
 	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
 
 	// slug and resource_id (+ /embed)
@@ -33,8 +34,9 @@ func Setup(r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerF
 	r.StrictSlash(true).Path(getPath(false, false)).Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 	r.StrictSlash(true).Path(getPath(true, false)).Methods(http.MethodGet).HandlerFunc(interactivesHandler)
 
-	//todo enabled by feature flag? for testkit - test for disabled by default
-	r.StrictSlash(true).PathPrefix("/interactives").Methods(http.MethodGet).HandlerFunc(interactivesHandler)
+	if cfg.ServeFromEmbeddedContent {
+		r.StrictSlash(true).PathPrefix("/interactives").Methods(http.MethodGet).HandlerFunc(interactivesHandler)
+	}
 }
 
 func getPath(withEmbed, withSlug bool) string {

@@ -42,8 +42,8 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Provider, error) {
 	var sp storage.Provider
 
-	if len(cfg.ServeFromLocalDir) > 0 {
-		sp = storage.NewFromLocalFilesystem(http.Dir(cfg.ServeFromLocalDir))
+	if cfg.ServeFromEmbeddedContent {
+		sp = storage.NewFromEmbeddedFilesystem()
 	} else {
 		sourceS3bucket, err := e.Init.DoGetS3Bucket()
 		if err != nil {

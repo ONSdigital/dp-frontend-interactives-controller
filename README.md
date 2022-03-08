@@ -18,7 +18,7 @@ Controller for handling interactive visualisation pages on ONS website
 | GRACEFUL_SHUTDOWN_TIMEOUT    | 5s                        | Graceful shutdown timeout in seconds (`time.Duration` format)                                                      |
 | HEALTHCHECK_INTERVAL         | 30s                       | Time between self-healthchecks (`time.Duration` format)                                                            |
 | HEALTHCHECK_CRITICAL_TIMEOUT | 90s                       | Time to wait until an unhealthy dependent propagates its state to make this app unhealthy (`time.Duration` format) |
-| SERVE_FROM_LOCAL_DIR         | [empty]                   | To serve content from local filesystem (for local development only)                                                |
+| SERVE_FROM_EMBEDDED_CONTENT  | false                     | To serve content from embedded, static FS (storage/localfs) - testing/development only                             |
 | API_ROUTER_URL               | http://localhost:23200/v1 | URL of the dp-api-router                                                                                           |
 
 ### Contributing

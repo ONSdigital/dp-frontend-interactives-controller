@@ -47,7 +47,7 @@ func NewComponent() (*Component, error) {
 		return nil, err
 	}
 
-	cfg.ServeFromLocalDir = "internal/sample_data"
+	cfg.ServeFromEmbeddedContent = true
 
 	initFunctions := &mocks_service.InitialiserMock{
 		DoGetHTTPServerFunc:   c.DoGetHTTPServer,

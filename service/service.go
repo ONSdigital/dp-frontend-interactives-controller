@@ -70,7 +70,7 @@ func (s *Service) Init(ctx context.Context) (err error) {
 
 	// Init router
 	r := mux.NewRouter()
-	routes.Setup(r, s.HealthCheck.Handler, handlers.Interactives(clients))
+	routes.Setup(s.Config, r, s.HealthCheck.Handler, handlers.Interactives(clients))
 	s.Server = s.ServiceList.GetHTTPServer(s.Config.BindAddr, r)
 
 	return nil
