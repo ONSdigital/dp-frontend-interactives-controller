@@ -59,8 +59,8 @@ func TestSetup(t *testing.T) {
 func TestRoutes(t *testing.T) {
 	cfg := &config.Config{}
 	resourceType := "interactives"
-	validResourceId := "abcde123"
-	validSlug := "nice-readable-slug"
+	validResourceId := "AbcdE123"
+	validSlug := "Nice-Readable-Slug"
 
 	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 		r := mux.NewRouter()

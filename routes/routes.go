@@ -42,7 +42,7 @@ func Setup(cfg *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesH
 func getPath(withEmbed, withSlug bool) string {
 	resourceTypeKey := "interactives" //this is driven from dp-frontend-router (should be 'interactives')
 
-	resourceIdPattern := "[a-z0-9]{8}"
+	resourceIdPattern := "[a-zA-Z0-9]{8}"
 	url := fmt.Sprintf("/{%s}/{%s:%s}", resourceTypeKey, ResourceIdVarKey, resourceIdPattern)
 	if withSlug {
 		slugKeyPattern := "[a-zA-Z0-9\\-]+"
