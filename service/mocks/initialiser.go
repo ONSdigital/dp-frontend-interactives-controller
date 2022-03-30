@@ -4,13 +4,13 @@
 package mocks_service
 
 import (
-	"net/http"
-	"sync"
-
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
+	"net/http"
+	"sync"
 )
 
 // Ensure, that InitialiserMock does implement service.Initialiser.
@@ -32,6 +32,9 @@ var _ service.Initialiser = &InitialiserMock{}
 // 			DoGetHealthClientFunc: func(name string, url string) *health.Client {
 // 				panic("mock out the DoGetHealthClient method")
 // 			},
+// 			DoGetInteractivesAPIClientFunc: func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+// 				panic("mock out the DoGetInteractivesAPIClient method")
+// 			},
 // 			DoGetS3BucketFunc: func() (storage.S3Bucket, error) {
 // 				panic("mock out the DoGetS3Bucket method")
 // 			},
@@ -50,6 +53,9 @@ type InitialiserMock struct {
 
 	// DoGetHealthClientFunc mocks the DoGetHealthClient method.
 	DoGetHealthClientFunc func(name string, url string) *health.Client
+
+	// DoGetInteractivesAPIClientFunc mocks the DoGetInteractivesAPIClient method.
+	DoGetInteractivesAPIClientFunc func(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
 
 	// DoGetS3BucketFunc mocks the DoGetS3Bucket method.
 	DoGetS3BucketFunc func() (storage.S3Bucket, error)
@@ -81,14 +87,20 @@ type InitialiserMock struct {
 			// URL is the url argument value.
 			URL string
 		}
+		// DoGetInteractivesAPIClient holds details about calls to the DoGetInteractivesAPIClient method.
+		DoGetInteractivesAPIClient []struct {
+			// ApiRouter is the apiRouter argument value.
+			ApiRouter *health.Client
+		}
 		// DoGetS3Bucket holds details about calls to the DoGetS3Bucket method.
 		DoGetS3Bucket []struct {
 		}
 	}
-	lockDoGetHTTPServer   sync.RWMutex
-	lockDoGetHealthCheck  sync.RWMutex
-	lockDoGetHealthClient sync.RWMutex
-	lockDoGetS3Bucket     sync.RWMutex
+	lockDoGetHTTPServer            sync.RWMutex
+	lockDoGetHealthCheck           sync.RWMutex
+	lockDoGetHealthClient          sync.RWMutex
+	lockDoGetInteractivesAPIClient sync.RWMutex
+	lockDoGetS3Bucket              sync.RWMutex
 }
 
 // DoGetHTTPServer calls DoGetHTTPServerFunc.
@@ -201,6 +213,37 @@ func (mock *InitialiserMock) DoGetHealthClientCalls() []struct {
 	mock.lockDoGetHealthClient.RLock()
 	calls = mock.calls.DoGetHealthClient
 	mock.lockDoGetHealthClient.RUnlock()
+	return calls
+}
+
+// DoGetInteractivesAPIClient calls DoGetInteractivesAPIClientFunc.
+func (mock *InitialiserMock) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+	if mock.DoGetInteractivesAPIClientFunc == nil {
+		panic("InitialiserMock.DoGetInteractivesAPIClientFunc: method is nil but Initialiser.DoGetInteractivesAPIClient was just called")
+	}
+	callInfo := struct {
+		ApiRouter *health.Client
+	}{
+		ApiRouter: apiRouter,
+	}
+	mock.lockDoGetInteractivesAPIClient.Lock()
+	mock.calls.DoGetInteractivesAPIClient = append(mock.calls.DoGetInteractivesAPIClient, callInfo)
+	mock.lockDoGetInteractivesAPIClient.Unlock()
+	return mock.DoGetInteractivesAPIClientFunc(apiRouter)
+}
+
+// DoGetInteractivesAPIClientCalls gets all the calls that were made to DoGetInteractivesAPIClient.
+// Check the length with:
+//     len(mockedInitialiser.DoGetInteractivesAPIClientCalls())
+func (mock *InitialiserMock) DoGetInteractivesAPIClientCalls() []struct {
+	ApiRouter *health.Client
+} {
+	var calls []struct {
+		ApiRouter *health.Client
+	}
+	mock.lockDoGetInteractivesAPIClient.RLock()
+	calls = mock.calls.DoGetInteractivesAPIClient
+	mock.lockDoGetInteractivesAPIClient.RUnlock()
 	return calls
 }
 

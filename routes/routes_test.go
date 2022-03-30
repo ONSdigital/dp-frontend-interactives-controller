@@ -19,17 +19,21 @@ var (
 	}
 )
 
-func checkPathVariablesHandler(t *testing.T, slug, resourceId string) func(w http.ResponseWriter, r *http.Request) {
+func checkPathVariablesHandler(t *testing.T, slug, resourceId, catchall string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		actualResourceId := vars[routes.ResourceIdVarKey]
 		actualSlug := vars[routes.SlugVarKey]
+		actualCatchall := vars[routes.CatchAllVarKey]
 
 		if actualResourceId != resourceId {
 			t.Errorf("resourceId not as expected, expected=[%s], actual=[%s]", resourceId, actualResourceId)
 		}
 		if actualSlug != slug {
 			t.Errorf("slug not as expected, expected=[%s], actual=[%s]", slug, actualSlug)
+		}
+		if actualCatchall != catchall {
+			t.Errorf("catchall not as expected, expected=[%s], actual=[%s]", catchall, actualCatchall)
 		}
 
 		w.WriteHeader(http.StatusNoContent)
@@ -78,28 +82,27 @@ func TestRoutes(t *testing.T) {
 		})
 
 		Convey("when a mapped route is called with trailing slash", func() {
-			urlWithTrailingSlash := fmt.Sprintf("/%s/%s-%s/", resourceType, validSlug, validResourceId)
+			urlWithTrailingSlash := fmt.Sprintf("/%s/%s-%s/embed/", resourceType, validSlug, validResourceId)
 			req := httptest.NewRequest(http.MethodGet, urlWithTrailingSlash, nil)
 			w := httptest.NewRecorder()
 
 			r.ServeHTTP(w, req)
 
-			Convey("then 301 is returned for nonslash url", func() {
-				So(w.Header().Get("location"), ShouldEqual, urlWithTrailingSlash[:len(urlWithTrailingSlash)-1])
-				So(w.Code, ShouldEqual, http.StatusMovedPermanently)
+			Convey("then 204 is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusNoContent)
 			})
 		})
 	})
 
-	type test struct{ method, url, slug, resourceId string }
+	type test struct{ method, url, slug, resourceId, catchall string }
 
 	Convey("Given router setup to check route variables", t, func() {
 		Convey("when a mapped route is called", func() {
 			cases := map[string]test{
-				"slug-and-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, validResourceId), validSlug, validResourceId},
-				"embedded-slug-and-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, validResourceId), validSlug, validResourceId},
-				"resource-id":                   {http.MethodGet, fmt.Sprintf("/%s/%s", resourceType, validResourceId), "", validResourceId},
-				"embedded-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s/embed", resourceType, validResourceId), "", validResourceId},
+				"slug-and-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
+				"embedded-slug-and-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
+				"resource-id":                   {http.MethodGet, fmt.Sprintf("/%s/%s", resourceType, validResourceId), "", validResourceId, ""},
+				"embedded-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s/embed", resourceType, validResourceId), "", validResourceId, ""},
 			}
 
 			for name, testReq := range cases {
@@ -107,7 +110,7 @@ func TestRoutes(t *testing.T) {
 				req := httptest.NewRequest(testReq.method, testReq.url, nil)
 				w := httptest.NewRecorder()
 
-				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId)
+				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
 				routes.Setup(cfg, r, nil, h)
 
@@ -121,26 +124,52 @@ func TestRoutes(t *testing.T) {
 
 		Convey("when am unsupported route is called", func() {
 			cases := map[string]test{
-				"not-supported":     {http.MethodGet, "/not-supported", "", ""},
-				"bad_slug_1":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "", validResourceId), "", ""},
-				"bad_slug_2":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "under_score", validResourceId), "", ""},
-				"bad_slug_3":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "full.stop", validResourceId), "", ""},
-				"bad_resource_id_1": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, ""), "", ""},
-				"bad_resource_id_2": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abcde"), "", ""},
-				"bad_resource_id_3": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abc-de"), "", ""},
+				"embed-not-supported":     {http.MethodGet, "/not-supported/embed", "", "", ""},
+				"embed-bad_slug_1":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, "", validResourceId), "", "", ""},
+				"embed-bad_slug_2":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, "under_score", validResourceId), "", "", ""},
+				"embed-bad_slug_3":        {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, "full.stop", validResourceId), "", "", ""},
+				"embed-bad_resource_id_1": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, ""), "", "", ""},
+				"embed-bad_resource_id_2": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, "abcde"), "", "", ""},
+				"embed-bad_resource_id_3": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, "abc-de"), "", "", ""},
+				"not-supported":           {http.MethodGet, "/not-supported", "", "", ""},
+				"bad_slug_1":              {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "", validResourceId), "", "", ""},
+				"bad_slug_2":              {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "under_score", validResourceId), "", "", ""},
+				"bad_slug_3":              {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, "full.stop", validResourceId), "", "", ""},
 			}
 
 			for name, testReq := range cases {
 				req := httptest.NewRequest(testReq.method, testReq.url, nil)
 				w := httptest.NewRecorder()
 
-				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId)
+				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
 				routes.Setup(cfg, r, nil, h)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 404 is returned for %s", name), func() {
 					So(w.Code, ShouldEqual, http.StatusNotFound)
+				})
+			}
+		})
+
+		Convey("when am unsupported route is called but route is matched", func() {
+			cases := map[string]test{
+				"bad_resource_id_1": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, ""), "Nice", "Readable", "-Slug-"},
+				"bad_resource_id_2": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abcde"), "Nice", "Readable", "-Slug-abcde"},
+				"bad_resource_id_3": {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, "abc-de"), "Nice", "Readable", "-Slug-abc-de"},
+			}
+
+			for name, testReq := range cases {
+				req := httptest.NewRequest(testReq.method, testReq.url, nil)
+				w := httptest.NewRecorder()
+
+				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
+				r := mux.NewRouter()
+				routes.Setup(cfg, r, nil, h)
+				r.ServeHTTP(w, req)
+
+				Convey(fmt.Sprintf("then 204 is returned for %s", name), func() {
+					So(w.Code, ShouldEqual, http.StatusNoContent)
 				})
 			}
 		})

@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
-
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
@@ -21,6 +21,7 @@ type Initialiser interface {
 	DoGetS3Bucket() (storage.S3Bucket, error)
 	DoGetHealthClient(name, url string) *health.Client
 	DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error)
+	DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
 }
 
 // HealthChecker defines the required methods from Healthcheck

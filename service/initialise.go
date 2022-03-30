@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -56,6 +58,16 @@ func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Pr
 	return sp, nil
 }
 
+// GetInteractivesAPIClient creates an interactives api client and sets the InteractivesApi flag to true
+func (e *ExternalServiceList) GetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+	client, err := e.Init.DoGetInteractivesAPIClient(apiRouter)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
 // GetHealthClient returns a healthclient for the provided URL
 func (e *ExternalServiceList) GetHealthClient(name, url string) *health.Client {
 	return e.Init.DoGetHealthClient(name, url)
@@ -103,6 +115,12 @@ func (e *Init) DoGetS3Bucket() (storage.S3Bucket, error) {
 	//}
 
 	return s3, nil
+}
+
+// DoGetInteractivesApiClient returns an interactives api client
+func (e *Init) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+	apiClient := interactives.NewWithHealthClient(apiRouter)
+	return apiClient, nil
 }
 
 // DoGetHealthClient creates a new Health Client for the provided name and url

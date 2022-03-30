@@ -3,6 +3,9 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
+	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	mocks_storage "github.com/ONSdigital/dp-frontend-interactives-controller/storage/mocks"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -36,19 +38,29 @@ func TestSetStatusCode(t *testing.T) {
 			w := httptest.NewRecorder()
 			err := &testCliError{}
 
-			setStatusCode(req, w, err)
+			setStatusCode(req, w, http.StatusInternalServerError, err)
 
 			So(w.Code, ShouldEqual, http.StatusNotFound)
 		})
 
-		Convey("test status code handles internal server error", func() {
+		Convey("test status code handles StatusInternalServerError", func() {
 			req := httptest.NewRequest("GET", "/", nil)
 			w := httptest.NewRecorder()
 			err := errors.New("internal server error")
 
-			setStatusCode(req, w, err)
+			setStatusCode(req, w, http.StatusInternalServerError, err)
 
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+		})
+
+		Convey("test status code handles StatusNotFound", func() {
+			req := httptest.NewRequest("GET", "/", nil)
+			w := httptest.NewRecorder()
+			err := errors.New("not found")
+
+			setStatusCode(req, w, http.StatusNotFound, err)
+
+			So(w.Code, ShouldEqual, http.StatusNotFound)
 		})
 	})
 }
@@ -70,26 +82,54 @@ func TestInteractives(t *testing.T) {
 
 		Convey("a request to a valid s3 path is made", func() {
 
-			clients := routes.Clients{
-				Storage: storageProvider,
-				Api:     &stubs.StubbedInteractivesAPIClient{},
+			validPath := "/valid/path/to/file.html"
+			type test struct {
+				expectedStatus, totalCount int
+				expectedFileContent, path  string
+			}
+			cases := map[string]test{
+				"happy-path":          {http.StatusOK, 1, fileOkContent, validPath},
+				"zero-results":        {http.StatusNotFound, 0, "", validPath},
+				"more-than-1-results": {http.StatusNotFound, 2, "", validPath},
 			}
 
-			handler := Interactives(clients)
+			for name, testReq := range cases {
+				apiMock := &mocks_routes.InteractivesAPIClientMock{
+					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+						return interactives.List{
+							Items: []interactives.Interactive{
+								{ID: "123456", Metadata: nil, Archive: nil},
+							},
+							Count:      1,
+							Offset:     0,
+							Limit:      10,
+							TotalCount: testReq.totalCount,
+						}, nil
+					},
+				}
 
-			req := httptest.NewRequest(http.MethodGet, "/valid/path/to/file.html", nil)
-			w := httptest.NewRecorder()
-			handler(w, req)
+				clients := routes.Clients{
+					Storage: storageProvider,
+					API:     apiMock,
+				}
 
-			Convey("then the status code is 200 and body is as expected", func() {
-				res := w.Result()
-				defer res.Body.Close()
-				data, err := ioutil.ReadAll(res.Body)
+				handler := Interactives(clients)
 
-				So(err, ShouldBeNil)
-				So(w.Code, ShouldEqual, http.StatusOK)
-				So(string(data), ShouldEqual, fileOkContent)
-			})
+				req := httptest.NewRequest(http.MethodGet, testReq.path, nil)
+				w := httptest.NewRecorder()
+				handler(w, req)
+
+				Convey(fmt.Sprintf("then the status code is 200 and body is as expected %s", name), func() {
+					res := w.Result()
+					defer res.Body.Close()
+					data, err := ioutil.ReadAll(res.Body)
+
+					So(err, ShouldBeNil)
+					So(w.Code, ShouldEqual, testReq.expectedStatus)
+					So(string(data), ShouldEqual, testReq.expectedFileContent)
+				})
+			}
+
 		})
 	})
 }

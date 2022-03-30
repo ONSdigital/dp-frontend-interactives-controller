@@ -2,6 +2,9 @@ package steps
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"log"
 	"net/http"
 	"os"
@@ -50,9 +53,10 @@ func NewComponent() (*Component, error) {
 	cfg.ServeFromEmbeddedContent = true
 
 	initFunctions := &mocks_service.InitialiserMock{
-		DoGetHTTPServerFunc:   c.DoGetHTTPServer,
-		DoGetHealthCheckFunc:  DoGetHealthcheckOk,
-		DoGetHealthClientFunc: DoGetHealthClient,
+		DoGetHTTPServerFunc:            c.DoGetHTTPServer,
+		DoGetHealthCheckFunc:           DoGetHealthcheckOk,
+		DoGetHealthClientFunc:          DoGetHealthClient,
+		DoGetInteractivesAPIClientFunc: DoGetInteractivesAPIClientFunc,
 	}
 
 	serviceList := service.NewServiceList(initFunctions)
@@ -141,3 +145,20 @@ func DoGetHealthcheckOk(cfg *config.Config, buildTime, gitCommit, version string
 func DoGetHealthClient(name, url string) *health.Client {
 	return &health.Client{}
 }
+
+func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+	return &mocks_routes.InteractivesAPIClientMock{
+		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+			return interactives.List{
+				Items: []interactives.Interactive{
+					{ID: "123456", Metadata: nil, Archive: nil},
+				},
+				Count:      1,
+				Offset:     0,
+				Limit:      10,
+				TotalCount: 1,
+			}, nil
+		},
+	}, nil
+}
+

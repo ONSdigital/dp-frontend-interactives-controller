@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes/stubs"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
@@ -30,6 +30,7 @@ type Service struct {
 	Server          HTTPServer
 	ServiceList     *ExternalServiceList
 	StorageProvider storage.Provider
+	APIRouter       *health.Client
 }
 
 // New creates a new service
@@ -43,9 +44,12 @@ func New(cfg *config.Config, serviceList *ExternalServiceList) *Service {
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (s *Service) Init(ctx context.Context) (err error) {
 
-	//todo ref: https://github.com/ONSdigital/dp-frontend-articles-controller/blob/72572622e94dd23d25c974cf3937aafa4eb38207/service/service.go#L47
-	// Get health client for api router
-	//apiRouterHealthClient := s.ServiceList.GetHealthClient("api-router", s.Config.APIRouterURL)
+	// API router & clients
+	s.APIRouter = health.NewClient("api-router", s.Config.APIRouterURL)
+	interactivesAPIClient, err := s.ServiceList.GetInteractivesAPIClient(s.APIRouter)
+	if err != nil {
+		return err
+	}
 
 	// Init storage provider
 	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config)
@@ -65,7 +69,7 @@ func (s *Service) Init(ctx context.Context) (err error) {
 	// Init clients
 	clients := routes.Clients{
 		Storage: s.StorageProvider,
-		Api:     &stubs.StubbedInteractivesAPIClient{},
+		API:     interactivesAPIClient,
 	}
 
 	// Init router
@@ -140,6 +144,11 @@ func (s *Service) registerCheckers(ctx context.Context) (err error) {
 	if err = s.HealthCheck.AddCheck("storage provider", s.StorageProvider.Checker()); err != nil {
 		hasErrors = true
 		log.Error(ctx, "error adding check for storage provider", err)
+	}
+
+	if err = s.HealthCheck.AddCheck("API router", s.APIRouter.Checker); err != nil {
+		hasErrors = true
+		log.Error(ctx, "failed to add API router health checker", err)
 	}
 
 	if hasErrors {

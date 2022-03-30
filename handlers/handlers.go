@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"path"
 	"path/filepath"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
@@ -18,11 +21,10 @@ type ClientError interface {
 	Code() int
 }
 
-func setStatusCode(r *http.Request, w http.ResponseWriter, err error) {
-	status := http.StatusInternalServerError
-	if err, ok := err.(ClientError); ok {
-		if err.Code() == http.StatusNotFound {
-			status = err.Code()
+func setStatusCode(r *http.Request, w http.ResponseWriter, status int, err error) {
+	if e, ok := err.(ClientError); ok {
+		if e.Code() == http.StatusNotFound {
+			status = e.Code()
 		}
 	}
 	log.Error(r.Context(), "setting-response-status", err)
@@ -38,41 +40,57 @@ func Interactives(clients routes.Clients) func(http.ResponseWriter, *http.Reques
 func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients routes.Clients) {
 	ctx := r.Context()
 
-	//TODO get metadata from API
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
-	_, err := clients.Api.Get(r.Context(), id)
+
+	all, err := clients.API.ListInteractives(r.Context(), "", "",
+		&interactives.QueryParams{
+			Offset: 0,
+			Limit:  1,
+			Filter: &interactives.InteractiveMetadata{ResourceID: id},
+		},
+	)
 	if err != nil {
-		//todo 404 from error pass back upstream?
-		log.Error(ctx, "failed to get from interactives api", err)
-		setStatusCode(r, w, err)
+		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
 		return
 	}
 
-	//todo - from interactive
-	path := r.URL.Path
+	if all.TotalCount != 1 {
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
+		return
+	}
+
+	filename := path.Base(r.URL.Path)
+	if filename == id || filename == routes.EmbeddedSuffix[1:] { //root url
+		filename = "/index.html"
+	} else {
+		filename = vars[routes.CatchAllVarKey]
+	}
+	if filename == "" || filename == "/" {
+		filename = "/index.html"
+	}
+
+	//todo if file not within interactives archive upload files - 404 otherwise get from download svc
 
 	//stream content to response
 	var readCloser io.ReadCloser
-	readCloser, err = clients.Storage.Get(path)
+	readCloser, err = clients.Storage.Get(filename)
 	if err != nil {
 		//todo 404 from error pass back upstream?
-		log.Error(ctx, "failed to get stream from storage provider", err)
-		setStatusCode(r, w, err)
+		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get stream from storage provider %w", err))
 		return
 	}
 	defer closeAndLogError(ctx, readCloser)
 
 	//note: has to be before writing body. ref: https://pkg.go.dev/net/http#ResponseWriter.Write
-	ctype := mime.TypeByExtension(filepath.Ext(path))
+	ctype := mime.TypeByExtension(filepath.Ext(filename))
 	if ctype != "" {
 		w.Header().Set("Content-Type", ctype)
 	}
 
 	_, err = io.Copy(w, readCloser)
 	if err != nil {
-		log.Error(ctx, "failed to write response", err)
-		setStatusCode(r, w, err)
+		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to write response %w", err))
 		return
 	}
 }
