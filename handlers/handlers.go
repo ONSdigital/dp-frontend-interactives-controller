@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"io"
 	"mime"
 	"net/http"
@@ -31,19 +32,19 @@ func setStatusCode(r *http.Request, w http.ResponseWriter, status int, err error
 	w.WriteHeader(status)
 }
 
-func Interactives(clients routes.Clients) func(http.ResponseWriter, *http.Request) {
+func Interactives(cfg *config.Config, clients routes.Clients) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		streamFromStorageProvider(w, r, clients)
+		streamFromStorageProvider(w, r, clients, cfg.ServiceAuthToken)
 	}
 }
 
-func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients routes.Clients) {
+func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients routes.Clients, serviceAuthToken string) {
 	ctx := r.Context()
 
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
 
-	all, err := clients.API.ListInteractives(r.Context(), "", "",
+	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
 		&interactives.QueryParams{
 			Offset: 0,
 			Limit:  1,

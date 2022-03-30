@@ -14,6 +14,7 @@ type Config struct {
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	ServeFromEmbeddedContent   bool          `envconfig:"SERVE_FROM_EMBEDDED_CONTENT"`
 	APIRouterURL               string        `envconfig:"API_ROUTER_URL"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN" json:"-"`
 }
 
 // Get returns the default config with any modifications through environment vars

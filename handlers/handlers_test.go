@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"io"
 	"io/ioutil"
@@ -113,7 +114,7 @@ func TestInteractives(t *testing.T) {
 					API:     apiMock,
 				}
 
-				handler := Interactives(clients)
+				handler := Interactives(&config.Config{}, clients)
 
 				req := httptest.NewRequest(http.MethodGet, testReq.path, nil)
 				w := httptest.NewRecorder()

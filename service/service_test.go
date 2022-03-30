@@ -3,6 +3,9 @@ package service_test
 import (
 	"context"
 	"errors"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"io"
 	"net/http"
 	"strings"
@@ -106,6 +109,14 @@ var (
 	funcDoGetS3BucketFail = func() (storage.S3Bucket, error) {
 		return s3BucketMockFailing, nil
 	}
+
+	funcDoGetInteractivesAPIClientOk = func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
+		return &mocks_routes.InteractivesAPIClientMock{
+			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+				return interactives.List{}, nil
+			},
+		}, nil
+	}
 )
 
 func TestConstructorNew(t *testing.T) {
@@ -114,10 +125,11 @@ func TestConstructorNew(t *testing.T) {
 	})
 	Convey("Then service is initialised successfully", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc: funcDoGetHealthClient,
-			DoGetHealthCheckFunc:  funcDoGetHealthCheckOK,
-			DoGetHTTPServerFunc:   funcDoGetHTTPServerOK,
-			DoGetS3BucketFunc:     funcDoGetS3BucketOK,
+			DoGetHealthClientFunc:          funcDoGetHealthClient,
+			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
+			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
+			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
+			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 		cfg, err := config.Get()
@@ -133,10 +145,11 @@ func TestConstructorNew(t *testing.T) {
 func TestInitSuccess(t *testing.T) {
 	Convey("Given all dependencies are successfully initialised", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc: funcDoGetHealthClient,
-			DoGetHealthCheckFunc:  funcDoGetHealthCheckOK,
-			DoGetHTTPServerFunc:   funcDoGetHTTPServerOK,
-			DoGetS3BucketFunc:     funcDoGetS3BucketOK,
+			DoGetHealthClientFunc:          funcDoGetHealthClient,
+			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
+			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
+			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
+			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -161,7 +174,9 @@ func TestInitSuccess(t *testing.T) {
 
 						Convey("And the checkers are registered and the healthcheck", func() {
 							So(mockServiceList.HealthCheck, ShouldBeTrue)
-							So(len(hcMock.AddCheckCalls()), ShouldEqual, 1)
+							So(len(hcMock.AddCheckCalls()), ShouldEqual, 2)
+							So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "storage provider")
+							So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "API router")
 							So(len(initMock.DoGetHTTPServerCalls()), ShouldEqual, 1)
 							So(initMock.DoGetHTTPServerCalls()[0].BindAddr, ShouldEqual, ":27300")
 						})
@@ -175,9 +190,10 @@ func TestInitSuccess(t *testing.T) {
 func TestInitFailure(t *testing.T) {
 	Convey("Given failure to create healthcheck", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc: funcDoGetHealthClient,
-			DoGetS3BucketFunc:     funcDoGetS3BucketOK,
-			DoGetHealthCheckFunc:  funcDoGetHealthCheckFail,
+			DoGetHealthClientFunc:          funcDoGetHealthClient,
+			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
+			DoGetHealthCheckFunc:           funcDoGetHealthCheckFail,
+			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -210,9 +226,10 @@ func TestInitFailure(t *testing.T) {
 
 	Convey("Given that Checkers cannot be registered", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc: funcDoGetHealthClient,
-			DoGetS3BucketFunc:     funcDoGetS3BucketFail,
-			DoGetHealthCheckFunc:  funcDoGetHealthAddCheckerFail,
+			DoGetHealthClientFunc:          funcDoGetHealthClient,
+			DoGetS3BucketFunc:              funcDoGetS3BucketFail,
+			DoGetHealthCheckFunc:           funcDoGetHealthAddCheckerFail,
+			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -240,8 +257,7 @@ func TestInitFailure(t *testing.T) {
 
 						Convey("And all checks try to register", func() {
 							So(mockServiceList.HealthCheck, ShouldBeTrue)
-							So(len(hcMockAddFail.AddCheckCalls()), ShouldEqual, 1)
-							So(hcMockAddFail.AddCheckCalls()[0].Name, ShouldResemble, "storage provider")
+							So(len(hcMockAddFail.AddCheckCalls()), ShouldEqual, 2)
 						})
 					})
 				})
@@ -253,9 +269,10 @@ func TestInitFailure(t *testing.T) {
 func TestStart(t *testing.T) {
 	Convey("Given a correctly initialised Service with mocked dependencies", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc: funcDoGetHealthClient,
-			DoGetHealthCheckFunc:  funcDoGetHealthCheckOK,
-			DoGetHTTPServerFunc:   funcDoGetHTTPServerOK,
+			DoGetHealthClientFunc:          funcDoGetHealthClient,
+			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
+			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
+			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
 		}
 		serverWg.Add(1)
 
