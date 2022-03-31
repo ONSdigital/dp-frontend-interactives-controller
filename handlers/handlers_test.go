@@ -84,6 +84,7 @@ func TestInteractives(t *testing.T) {
 		Convey("a request to a valid s3 path is made", func() {
 
 			validPath := "/valid/path/to/file.html"
+			pub := true
 			type test struct {
 				expectedStatus, totalCount int
 				expectedFileContent, path  string
@@ -99,7 +100,7 @@ func TestInteractives(t *testing.T) {
 					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 						return interactives.List{
 							Items: []interactives.Interactive{
-								{ID: "123456", Metadata: nil, Archive: nil},
+								{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
 							},
 							Count:      1,
 							Offset:     0,
@@ -131,6 +132,40 @@ func TestInteractives(t *testing.T) {
 				})
 			}
 
+		})
+
+		Convey("Request to an unpublished interactive is made", func() {
+			pub := false
+			apiMock := &mocks_routes.InteractivesAPIClientMock{
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+					return interactives.List{
+						Items: []interactives.Interactive{
+							{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
+						},
+						Count:      1,
+						Offset:     0,
+						Limit:      10,
+						TotalCount: 1,
+					}, nil
+				},
+			}
+
+			clients := routes.Clients{
+				Storage: storageProvider,
+				API:     apiMock,
+			}
+
+			handler := Interactives(&config.Config{}, clients)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			w := httptest.NewRecorder()
+			handler(w, req)
+
+			Convey("then the status code is 403", func() {
+				res := w.Result()
+				defer res.Body.Close()
+				So(res.StatusCode, ShouldEqual, http.StatusForbidden)
+			})
 		})
 	})
 }

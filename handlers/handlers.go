@@ -2,13 +2,15 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"io"
 	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
@@ -59,6 +61,11 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	if all.TotalCount != 1 {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
 		return
+	}
+
+	// block access if interactive is unpublished
+	if !*(all.Items[0].Published) {
+		setStatusCode(r, w, http.StatusForbidden, errors.New("access prohibited for unpublished interactives"))
 	}
 
 	filename := path.Base(r.URL.Path)
