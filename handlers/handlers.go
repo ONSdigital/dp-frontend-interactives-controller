@@ -65,7 +65,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 
 	// block access if interactive is unpublished
 	if !*(all.Items[0].Published) {
-		setStatusCode(r, w, http.StatusForbidden, errors.New("access prohibited for unpublished interactives"))
+		setStatusCode(r, w, http.StatusNotFound, errors.New("access prohibited for unpublished interactives"))
 	}
 
 	filename := path.Base(r.URL.Path)
