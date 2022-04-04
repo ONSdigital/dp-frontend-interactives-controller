@@ -51,7 +51,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
 
-	if ix := canGetInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
 		return
 	}
 
@@ -87,7 +87,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	}
 }
 
-func canGetInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) *interactives.Interactive {
+func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) *interactives.Interactive {
 	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
 		&interactives.QueryParams{
 			Offset: 0,
@@ -118,7 +118,7 @@ func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients
 	id := vars[routes.ResourceIdVarKey]
 	url := ""
 
-	if ix := canGetInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
 		return
 	} else {
 		url = fmt.Sprintf("%s-%s/embed", ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID)
