@@ -35,6 +35,7 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(interactivesHandler)
+	
 	// only resource_id - redirect
 	r.StrictSlash(true).
 		PathPrefix(getPath(false, false)).
@@ -43,13 +44,14 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(redirectHandler)
+	r.StrictSlash(true).
+		Path(getPath(true, false)).
+		Methods(http.MethodGet).
+		HandlerFunc(redirectHandler)
+
 	// fixed /embed URLs
 	r.StrictSlash(true).
 		Path(getPath(true, true)).
-		Methods(http.MethodGet).
-		HandlerFunc(interactivesHandler)
-	r.StrictSlash(true).
-		Path(getPath(true, false)).
 		Methods(http.MethodGet).
 		HandlerFunc(interactivesHandler)
 }
