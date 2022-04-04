@@ -34,6 +34,12 @@ func setStatusCode(r *http.Request, w http.ResponseWriter, status int, err error
 	w.WriteHeader(status)
 }
 
+func InteractivesRedirect(cfg *config.Config, clients routes.Clients) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		redirectToFullyQualifiedURL(w, r, clients, cfg.ServiceAuthToken)
+	}
+}
+
 func Interactives(cfg *config.Config, clients routes.Clients) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		streamFromStorageProvider(w, r, clients, cfg.ServiceAuthToken)
@@ -42,30 +48,11 @@ func Interactives(cfg *config.Config, clients routes.Clients) func(http.Response
 
 func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients routes.Clients, serviceAuthToken string) {
 	ctx := r.Context()
-
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
 
-	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
-		&interactives.QueryParams{
-			Offset: 0,
-			Limit:  1,
-			Filter: &interactives.InteractiveMetadata{ResourceID: id},
-		},
-	)
-	if err != nil {
-		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
+	if ix := canGetInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
 		return
-	}
-
-	if all.TotalCount != 1 {
-		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
-		return
-	}
-
-	// block access if interactive is unpublished
-	if !*(all.Items[0].Published) {
-		setStatusCode(r, w, http.StatusNotFound, errors.New("access prohibited for unpublished interactives"))
 	}
 
 	filename := path.Base(r.URL.Path)
@@ -78,11 +65,8 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 		filename = "/index.html"
 	}
 
-	//todo if file not within interactives archive upload files - 404 otherwise get from download svc
-
 	//stream content to response
-	var readCloser io.ReadCloser
-	readCloser, err = clients.Storage.Get(filename)
+	readCloser, err := clients.Storage.Get(filename)
 	if err != nil {
 		//todo 404 from error pass back upstream?
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get stream from storage provider %w", err))
@@ -101,6 +85,46 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to write response %w", err))
 		return
 	}
+}
+
+func canGetInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) *interactives.Interactive {
+	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
+		&interactives.QueryParams{
+			Offset: 0,
+			Limit:  1,
+			Filter: &interactives.InteractiveMetadata{ResourceID: id},
+		},
+	)
+	if err != nil {
+		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
+		return nil
+	}
+
+	if all.TotalCount != 1 {
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
+		return nil
+	}
+
+	// block access if interactive is unpublished
+	if !*(all.Items[0].Published) {
+		setStatusCode(r, w, http.StatusNotFound, errors.New("access prohibited for unpublished interactives"))
+		return nil
+	}
+	return &all.Items[0]
+}
+
+func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients routes.Clients, serviceAuthToken string) {
+	vars := mux.Vars(r)
+	id := vars[routes.ResourceIdVarKey]
+	url := ""
+
+	if ix := canGetInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+		return
+	} else {
+		url = fmt.Sprintf("%s-%s/embed", ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID)
+	}
+
+	http.Redirect(w, r, url , http.StatusMovedPermanently)
 }
 
 func closeAndLogError(ctx context.Context, closer io.Closer) {

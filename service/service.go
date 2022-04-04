@@ -74,7 +74,9 @@ func (s *Service) Init(ctx context.Context) (err error) {
 
 	// Init router
 	r := mux.NewRouter()
-	routes.Setup(s.Config, r, s.HealthCheck.Handler, handlers.Interactives(s.Config, clients))
+	routes.Setup(s.Config, r, s.HealthCheck.Handler,
+		handlers.Interactives(s.Config, clients),
+		handlers.InteractivesRedirect(s.Config, clients))
 	s.Server = s.ServiceList.GetHTTPServer(s.Config.BindAddr, r)
 
 	return nil

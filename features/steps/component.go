@@ -149,9 +149,10 @@ func DoGetHealthClient(name, url string) *health.Client {
 func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 	return &mocks_routes.InteractivesAPIClientMock{
 		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+			pub := true
 			return interactives.List{
 				Items: []interactives.Interactive{
-					{ID: "123456", Metadata: nil, Archive: nil},
+					{ID: "123456", Archive: nil, Published: &pub},
 				},
 				Count:      1,
 				Offset:     0,

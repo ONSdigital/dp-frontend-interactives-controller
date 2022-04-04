@@ -18,7 +18,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 
 func (c *Component) theBrowserLoadsTheIframe() error {
 	err := chromedp.Run(c.chrome.ctx,
-		chromedp.Navigate("http://localhost:27300/interactives/abcde123/index.html"),
+		chromedp.Navigate("http://localhost:27300/interactives/slug-abcde123/index.html"),
 		chromedp.WaitVisible(`#childt`),
 	)
 

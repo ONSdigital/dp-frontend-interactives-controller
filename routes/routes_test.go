@@ -2,10 +2,11 @@ package routes_test
 
 import (
 	"fmt"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/gorilla/mux"
@@ -43,7 +44,7 @@ func checkPathVariablesHandler(t *testing.T, slug, resourceId, catchall string) 
 func TestSetup(t *testing.T) {
 	Convey("Given default config then 5 routes are applied", t, func() {
 		r := mux.NewRouter()
-		routes.Setup(&config.Config{}, r, statusNoContentFunc, statusNoContentFunc)
+		routes.Setup(&config.Config{}, r, statusNoContentFunc, statusNoContentFunc, statusNoContentFunc)
 
 		routes := 0
 		err := r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
@@ -68,7 +69,7 @@ func TestRoutes(t *testing.T) {
 
 	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 		r := mux.NewRouter()
-		routes.Setup(cfg, r, statusNoContentFunc, statusNoContentFunc)
+		routes.Setup(cfg, r, statusNoContentFunc, statusNoContentFunc, statusNoContentFunc)
 
 		Convey("when "+routes.HealthEndpoint+" is called", func() {
 			req := httptest.NewRequest("GET", routes.HealthEndpoint, nil)
@@ -112,7 +113,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h)
+				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
 
 				r.ServeHTTP(w, req)
 
@@ -143,7 +144,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h)
+				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 404 is returned for %s", name), func() {
@@ -165,7 +166,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h)
+				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 204 is returned for %s", name), func() {

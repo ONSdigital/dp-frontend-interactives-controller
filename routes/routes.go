@@ -25,7 +25,7 @@ type Clients struct {
 }
 
 // Setup registers routes for the service
-func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc) {
+func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc, redirectHandler http.HandlerFunc) {
 	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
 	// /interactives
 	r.StrictSlash(true).
@@ -35,13 +35,14 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(interactivesHandler)
+	// only resource_id - redirect
 	r.StrictSlash(true).
 		PathPrefix(getPath(false, false)).
 		MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 			return !strings.HasSuffix(r.URL.Path, EmbeddedSuffix)
 		}).
 		Methods(http.MethodGet).
-		Handler(interactivesHandler)
+		Handler(redirectHandler)
 	// fixed /embed URLs
 	r.StrictSlash(true).
 		Path(getPath(true, true)).
