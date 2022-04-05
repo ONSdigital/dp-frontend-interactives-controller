@@ -54,6 +54,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 
 	ix := getInteractive(w, r, id, clients, serviceAuthToken)
 	if ix == nil {
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to find resource id %s", id))
 		return
 	}
 
@@ -127,6 +128,7 @@ func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients
 	url := ""
 
 	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to find resource id %s", id))
 		return
 	} else {
 		url = fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
