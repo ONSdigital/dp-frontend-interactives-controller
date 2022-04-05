@@ -50,9 +50,17 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
+	slug := vars[routes.SlugVarKey]
 
-	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+	ix := getInteractive(w, r, id, clients, serviceAuthToken)
+	if ix == nil {
 		return
+	}
+
+	// redirect if slug mismatch
+	if slug != "" && ix.Metadata != nil && ix.Metadata.HumanReadableSlug != slug {
+		url := fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
+		http.Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 
 	filename := path.Base(r.URL.Path)
@@ -121,10 +129,10 @@ func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients
 	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
 		return
 	} else {
-		url = fmt.Sprintf("%s-%s/embed", ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID)
+		url = fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
 	}
 
-	http.Redirect(w, r, url , http.StatusMovedPermanently)
+	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
 func closeAndLogError(ctx context.Context, closer io.Closer) {

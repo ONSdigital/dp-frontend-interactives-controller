@@ -14,6 +14,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
+	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
@@ -208,5 +209,44 @@ func TestInteractives(t *testing.T) {
 			})
 		})
 
+		Convey("mismatched slug must redirect", func() {
+			pub := true
+			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
+			apiMock := &mocks_routes.InteractivesAPIClientMock{
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+					return interactives.List{
+						Items: []interactives.Interactive{
+							{ID: "123456", Published: &pub, Metadata: mData, Archive: nil},
+						},
+						Count:      1,
+						Offset:     0,
+						Limit:      10,
+						TotalCount: 1,
+					}, nil
+				},
+			}
+
+			clients := routes.Clients{
+				Storage: storageProvider,
+				API:     apiMock,
+			}
+
+			handler := Interactives(&config.Config{}, clients)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req = mux.SetURLVars(req, map[string]string{routes.SlugVarKey: "different-slug", routes.ResourceIdVarKey: "resid123"})
+			w := httptest.NewRecorder()
+			handler(w, req)
+
+			Convey("then the status code is 301", func() {
+				expectedRedirect := fmt.Sprintf("/%s-%s%s", mData.HumanReadableSlug, mData.ResourceID, routes.EmbeddedSuffix)
+				res := w.Result()
+				defer res.Body.Close()
+				body := w.Body.String()
+
+				So(res.StatusCode, ShouldEqual, http.StatusMovedPermanently)
+				So(strings.Contains(body, expectedRedirect), ShouldBeTrue)
+			})
+		})
 	})
 }

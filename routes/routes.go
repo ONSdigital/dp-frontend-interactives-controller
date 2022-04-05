@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	ResourceTypeKey  = "interactives"
 	HealthEndpoint   = "/health"
 	EmbeddedSuffix   = "/embed"
 	ResourceIdVarKey = "resource_id"
@@ -35,7 +36,7 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(interactivesHandler)
-	
+
 	// only resource_id - redirect
 	r.StrictSlash(true).
 		PathPrefix(getPath(false, false)).
@@ -57,13 +58,12 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 }
 
 func getPath(withEmbed, withSlug bool) string {
-	resourceTypeKey := "interactives" //this is driven from dp-frontend-router (should be 'interactives')
 
 	resourceIdPattern := "[a-zA-Z0-9]{8}"
-	url := fmt.Sprintf("/{%s}/{%s:%s}", resourceTypeKey, ResourceIdVarKey, resourceIdPattern)
+	url := fmt.Sprintf("/{%s}/{%s:%s}", ResourceTypeKey, ResourceIdVarKey, resourceIdPattern)
 	if withSlug {
 		slugKeyPattern := "[a-zA-Z0-9\\-]+"
-		url = fmt.Sprintf("/{%s}/{%s:%s}-{%s:%s}", resourceTypeKey, SlugVarKey, slugKeyPattern, ResourceIdVarKey, resourceIdPattern)
+		url = fmt.Sprintf("/{%s}/{%s:%s}-{%s:%s}", ResourceTypeKey, SlugVarKey, slugKeyPattern, ResourceIdVarKey, resourceIdPattern)
 	}
 	if withEmbed {
 		url = fmt.Sprintf("%s%s", url, EmbeddedSuffix)
