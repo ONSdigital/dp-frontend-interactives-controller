@@ -2,12 +2,11 @@ package routes
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
-
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/gorilla/mux"
+	"net/http"
+	"strings"
 )
 
 const (
@@ -27,8 +26,21 @@ type Clients struct {
 
 // Setup registers routes for the service
 func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHandler http.HandlerFunc, redirectHandler http.HandlerFunc) {
+	//health
 	r.StrictSlash(true).Path(HealthEndpoint).HandlerFunc(hc)
-	// /interactives
+
+	// fixed /embed URLs - needs to be first
+	r.StrictSlash(true).
+		Path(getPath(true, false)).
+		Methods(http.MethodGet).
+		HandlerFunc(redirectHandler)
+	r.StrictSlash(true).
+		Path(getPath(true, true)).
+		Methods(http.MethodGet).
+		HandlerFunc(interactivesHandler)
+
+	// PathPrefix route is for supporting relative paths in html file
+	// todo remove this when we sort a templating solution
 	r.StrictSlash(true).
 		PathPrefix(getPath(false, true)).
 		MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
@@ -36,8 +48,6 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(interactivesHandler)
-
-	// only resource_id - redirect
 	r.StrictSlash(true).
 		PathPrefix(getPath(false, false)).
 		MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
@@ -45,16 +55,6 @@ func Setup(_ *config.Config, r *mux.Router, hc http.HandlerFunc, interactivesHan
 		}).
 		Methods(http.MethodGet).
 		Handler(redirectHandler)
-	r.StrictSlash(true).
-		Path(getPath(true, false)).
-		Methods(http.MethodGet).
-		HandlerFunc(redirectHandler)
-
-	// fixed /embed URLs
-	r.StrictSlash(true).
-		Path(getPath(true, true)).
-		Methods(http.MethodGet).
-		HandlerFunc(interactivesHandler)
 }
 
 func getPath(withEmbed, withSlug bool) string {
@@ -68,6 +68,7 @@ func getPath(withEmbed, withSlug bool) string {
 	if withEmbed {
 		url = fmt.Sprintf("%s%s", url, EmbeddedSuffix)
 	} else {
+		//todo can remove this too when templating done
 		url = fmt.Sprintf("%s{%s:.*}", url, CatchAllVarKey)
 	}
 

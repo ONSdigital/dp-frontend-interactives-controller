@@ -1,0 +1,385 @@
+openapi: 3.0.1
+info:
+  description: A service used to download files from private or public s3 buckets.
+  license:
+    name: Open Government Licence v3.0
+    url: http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+  title: Download service
+  version: 1.0.0
+servers:
+- url: http://localhost:23600/
+tags:
+- name: Public
+paths:
+  /downloads-new/{filepath}:
+    get:
+      description: Request a download for a file.
+      parameters:
+      - description: filepath of required file
+        in: path
+        name: filepath
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: Download a file
+      tags:
+      - Download file
+  /downloads/datasets/{datasetID}/editions/{edition}/versions/{version}.csv:
+    get:
+      description: "Request a download for the full CSV for a given datasetID, edition\
+        \ and version."
+      parameters:
+      - description: The unique identifier for a dataset.
+        in: path
+        name: datasetID
+        required: true
+        schema:
+          type: string
+      - description: An edition of a dataset
+        in: path
+        name: edition
+        required: true
+        schema:
+          type: string
+      - description: A version of a dataset
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            text/csv:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: "Download the full csv for a given datasetID, edition and version"
+      tags:
+      - Public
+  /downloads/datasets/{datasetID}/editions/{edition}/versions/{version}.csv-metadata.json:
+    get:
+      description: "Request a download for the metadata for the full CSV for a given\
+        \ datasetID, edition and version."
+      parameters:
+      - description: The unique identifier for a dataset.
+        in: path
+        name: datasetID
+        required: true
+        schema:
+          type: string
+      - description: An edition of a dataset
+        in: path
+        name: edition
+        required: true
+        schema:
+          type: string
+      - description: A version of a dataset
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/csvm+json:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: "Download the csv metadata for a given datasetID, edition and version"
+      tags:
+      - Public
+  /downloads/datasets/{datasetID}/editions/{edition}/versions/{version}.xlsx:
+    get:
+      description: "Request a download for the full Excel file for a given datasetID,\
+        \ edition and version."
+      parameters:
+      - description: The unique identifier for a dataset.
+        in: path
+        name: datasetID
+        required: true
+        schema:
+          type: string
+      - description: An edition of a dataset
+        in: path
+        name: edition
+        required: true
+        schema:
+          type: string
+      - description: A version of a dataset
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/vnd.ms-excel:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: "Download the full excel file for a given datasetID, edition and version"
+      tags:
+      - Public
+  /downloads/filter-outputs/{filterOutputID}.csv:
+    get:
+      description: Request a download for a filtered csv file for a given filter ouput
+        id which has selected dimension values
+      parameters:
+      - description: The unique identifier for a filter output job
+        in: path
+        name: filterOutputID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            text/csv:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: Download a filtered csv file for a given filter output id
+      tags:
+      - Public
+  /downloads/filter-outputs/{filterOutputID}.xlsx:
+    get:
+      description: Request a download for a filtered excel file for a given filter
+        ouput id which has selected dimension values
+      parameters:
+      - description: The unique identifier for a filter output job
+        in: path
+        name: filterOutputID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            text/csv:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: Download a filtered excel file for a given filter output id
+      tags:
+      - Public
+  /images/{imageID}/{variant}/{filename}:
+    get:
+      description: Request a download of a specific variant of an image as created
+        by the image importer
+      parameters:
+      - description: The unique identifier for an image.
+        in: path
+        name: imageID
+        required: true
+        schema:
+          type: string
+      - description: The variant of an image to download
+        in: path
+        name: variant
+        required: true
+        schema:
+          type: string
+      - description: The filename of the file to download
+        in: path
+        name: filename
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            image/png:
+              schema:
+                format: binary
+                type: string
+          description: A streamed response containing the requested download file
+        "301":
+          content: {}
+          description: A permanent redirect to where the file is hosted on S3
+        "400":
+          content: {}
+          description: Failed to process the request due to invalid request.
+        "404":
+          content: {}
+          description: The download for the requested version was not found.
+        "500":
+          content: {}
+          description: Failed to process the request due to an internal error.
+      summary: Download an image variant
+      tags:
+      - Public
+components:
+  parameters:
+    datasetID:
+      description: The unique identifier for a dataset.
+      in: path
+      name: datasetID
+      required: true
+      schema:
+        type: string
+    edition:
+      description: An edition of a dataset
+      in: path
+      name: edition
+      required: true
+      schema:
+        type: string
+    version:
+      description: A version of a dataset
+      in: path
+      name: version
+      required: true
+      schema:
+        type: string
+    filterOutputID:
+      description: The unique identifier for a filter output job
+      in: path
+      name: filterOutputID
+      required: true
+      schema:
+        type: string
+    imageID:
+      description: The unique identifier for an image.
+      in: path
+      name: imageID
+      required: true
+      schema:
+        type: string
+    variant:
+      description: The variant of an image to download
+      in: path
+      name: variant
+      required: true
+      schema:
+        type: string
+    filename:
+      description: The filename of the file to download
+      in: path
+      name: filename
+      required: true
+      schema:
+        type: string
+    file_path:
+      description: filepath of required file
+      in: path
+      name: filepath
+      required: true
+      schema:
+        type: string
+  responses:
+    InvalidRequestError:
+      content: {}
+      description: Failed to process the request due to invalid request.
+    InternalError:
+      content: {}
+      description: Failed to process the request due to an internal error.
+    NotFoundError:
+      content: {}
+      description: The download for the requested version was not found.
+    RequestRedirect:
+      content: {}
+      description: A permanent redirect to where the file is hosted on S3
+    StreamedResponse:
+      content:
+        '*/*':
+          schema:
+            format: binary
+            type: string
+      description: A streamed response containing the requested download file
+  schemas: {}
+  securitySchemes:
+    FlorenceAPIKey:
+      description: API key used to allow florence users to be able to access a full
+        download for an unpublished version.
+      in: header
+      name: X-Florence-Token
+      type: apiKey
+x-original-swagger-version: "2.0"

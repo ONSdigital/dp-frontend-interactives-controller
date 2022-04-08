@@ -15,6 +15,8 @@ type Config struct {
 	ServeFromEmbeddedContent   bool          `envconfig:"SERVE_FROM_EMBEDDED_CONTENT"`
 	APIRouterURL               string        `envconfig:"API_ROUTER_URL"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN" json:"-"`
+	//todo other ctlrs all go through api-router - but this doesnt pass on auth headers so fails when passed thru to download-svc
+	DownloadAPIURL string `envconfig:"DOWNLOAD_API_URL"`
 }
 
 // Get returns the default config with any modifications through environment vars
@@ -26,6 +28,7 @@ func Get() (*Config, error) {
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		ServeFromEmbeddedContent:   false,
 		APIRouterURL:               "http://localhost:23200/v1",
+		DownloadAPIURL:             "http://localhost:23600",
 	}
 
 	return cfg, envconfig.Process("", cfg)

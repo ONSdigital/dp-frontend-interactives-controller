@@ -35,8 +35,8 @@ var _ service.Initialiser = &InitialiserMock{}
 // 			DoGetInteractivesAPIClientFunc: func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 // 				panic("mock out the DoGetInteractivesAPIClient method")
 // 			},
-// 			DoGetS3BucketFunc: func() (storage.S3Bucket, error) {
-// 				panic("mock out the DoGetS3Bucket method")
+// 			DoGetStorageProviderFunc: func(cfg *config.Config) (storage.Provider, error) {
+// 				panic("mock out the DoGetStorageProvider method")
 // 			},
 // 		}
 //
@@ -57,8 +57,8 @@ type InitialiserMock struct {
 	// DoGetInteractivesAPIClientFunc mocks the DoGetInteractivesAPIClient method.
 	DoGetInteractivesAPIClientFunc func(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
 
-	// DoGetS3BucketFunc mocks the DoGetS3Bucket method.
-	DoGetS3BucketFunc func() (storage.S3Bucket, error)
+	// DoGetStorageProviderFunc mocks the DoGetStorageProvider method.
+	DoGetStorageProviderFunc func(cfg *config.Config) (storage.Provider, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -92,15 +92,17 @@ type InitialiserMock struct {
 			// ApiRouter is the apiRouter argument value.
 			ApiRouter *health.Client
 		}
-		// DoGetS3Bucket holds details about calls to the DoGetS3Bucket method.
-		DoGetS3Bucket []struct {
+		// DoGetStorageProvider holds details about calls to the DoGetStorageProvider method.
+		DoGetStorageProvider []struct {
+			// Cfg is the cfg argument value.
+			Cfg *config.Config
 		}
 	}
 	lockDoGetHTTPServer            sync.RWMutex
 	lockDoGetHealthCheck           sync.RWMutex
 	lockDoGetHealthClient          sync.RWMutex
 	lockDoGetInteractivesAPIClient sync.RWMutex
-	lockDoGetS3Bucket              sync.RWMutex
+	lockDoGetStorageProvider       sync.RWMutex
 }
 
 // DoGetHTTPServer calls DoGetHTTPServerFunc.
@@ -247,28 +249,33 @@ func (mock *InitialiserMock) DoGetInteractivesAPIClientCalls() []struct {
 	return calls
 }
 
-// DoGetS3Bucket calls DoGetS3BucketFunc.
-func (mock *InitialiserMock) DoGetS3Bucket() (storage.S3Bucket, error) {
-	if mock.DoGetS3BucketFunc == nil {
-		panic("InitialiserMock.DoGetS3BucketFunc: method is nil but Initialiser.DoGetS3Bucket was just called")
+// DoGetStorageProvider calls DoGetStorageProviderFunc.
+func (mock *InitialiserMock) DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+	if mock.DoGetStorageProviderFunc == nil {
+		panic("InitialiserMock.DoGetStorageProviderFunc: method is nil but Initialiser.DoGetStorageProvider was just called")
 	}
 	callInfo := struct {
-	}{}
-	mock.lockDoGetS3Bucket.Lock()
-	mock.calls.DoGetS3Bucket = append(mock.calls.DoGetS3Bucket, callInfo)
-	mock.lockDoGetS3Bucket.Unlock()
-	return mock.DoGetS3BucketFunc()
+		Cfg *config.Config
+	}{
+		Cfg: cfg,
+	}
+	mock.lockDoGetStorageProvider.Lock()
+	mock.calls.DoGetStorageProvider = append(mock.calls.DoGetStorageProvider, callInfo)
+	mock.lockDoGetStorageProvider.Unlock()
+	return mock.DoGetStorageProviderFunc(cfg)
 }
 
-// DoGetS3BucketCalls gets all the calls that were made to DoGetS3Bucket.
+// DoGetStorageProviderCalls gets all the calls that were made to DoGetStorageProvider.
 // Check the length with:
-//     len(mockedInitialiser.DoGetS3BucketCalls())
-func (mock *InitialiserMock) DoGetS3BucketCalls() []struct {
+//     len(mockedInitialiser.DoGetStorageProviderCalls())
+func (mock *InitialiserMock) DoGetStorageProviderCalls() []struct {
+	Cfg *config.Config
 } {
 	var calls []struct {
+		Cfg *config.Config
 	}
-	mock.lockDoGetS3Bucket.RLock()
-	calls = mock.calls.DoGetS3Bucket
-	mock.lockDoGetS3Bucket.RUnlock()
+	mock.lockDoGetStorageProvider.RLock()
+	calls = mock.calls.DoGetStorageProvider
+	mock.lockDoGetStorageProvider.RUnlock()
 	return calls
 }

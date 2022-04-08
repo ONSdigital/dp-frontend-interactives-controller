@@ -65,6 +65,18 @@ func TestSetStatusCode(t *testing.T) {
 
 			So(w.Code, ShouldEqual, http.StatusNotFound)
 		})
+
+		Convey("test if status code called twice then not overwritten", func() {
+			//https://cs.opensource.google/go/go/+/master:src/net/http/server.go;drc=81431c7aa7c5d782e72dec342442ea7664ef1783;l=141
+			req := httptest.NewRequest("GET", "/", nil)
+			w := httptest.NewRecorder()
+			err := errors.New("internal server error")
+
+			setStatusCode(req, w, http.StatusInternalServerError, err)
+			setStatusCode(req, w, http.StatusNotFound, err)
+
+			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+		})
 	})
 }
 
@@ -102,7 +114,17 @@ func TestInteractives(t *testing.T) {
 					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 						return interactives.List{
 							Items: []interactives.Interactive{
-								{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
+								{
+									ID:        "123456",
+									Published: &pub,
+									Metadata:  nil,
+									Archive: &interactives.InteractiveArchive{
+										Name: "archive.zip",
+										Files: []*interactives.InteractiveFile{
+											{RootFile, "mimetype", 1},
+										},
+									},
+								},
 							},
 							Count:      1,
 							Offset:     0,

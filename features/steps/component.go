@@ -5,6 +5,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"log"
 	"net/http"
 	"os"
@@ -57,6 +58,7 @@ func NewComponent() (*Component, error) {
 		DoGetHealthCheckFunc:           DoGetHealthcheckOk,
 		DoGetHealthClientFunc:          DoGetHealthClient,
 		DoGetInteractivesAPIClientFunc: DoGetInteractivesAPIClientFunc,
+		DoGetStorageProviderFunc:       DoGetStorageProvider,
 	}
 
 	serviceList := service.NewServiceList(initFunctions)
@@ -163,3 +165,7 @@ func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.Interactiv
 	}, nil
 }
 
+func DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+	//note: real implementation (mock is available: mocks_storage.ProviderMock{})
+	return storage.NewFromEmbeddedFilesystem(), nil
+}

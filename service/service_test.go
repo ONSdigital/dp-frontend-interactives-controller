@@ -3,9 +3,6 @@ package service_test
 import (
 	"context"
 	"errors"
-	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"io"
 	"net/http"
 	"strings"
@@ -14,12 +11,16 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 	mocks_service "github.com/ONSdigital/dp-frontend-interactives-controller/service/mocks"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	mocks_storage "github.com/ONSdigital/dp-frontend-interactives-controller/storage/mocks"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	dphttp "github.com/ONSdigital/dp-net/http"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -77,39 +78,11 @@ var (
 		return &health.Client{
 			URL:    url,
 			Name:   name,
-			Client: service.NewMockHTTPClient(&http.Response{}, nil),
+			Client: newMockHTTPClient(&http.Response{}, nil),
 		}
 	}
 
-	// S3Bucket mock
-	s3BucketMock = &mocks_storage.S3BucketMock{
-		CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-			return state.Update(healthcheck.StatusOK, "mocked s3 bucket healthy", 0)
-		},
-		GetFunc: func(key string) (io.ReadCloser, *int64, error) {
-			r := strings.NewReader("some arbitrary bucket content")
-			contentLen := int64(123)
-			return io.NopCloser(r), &contentLen, nil
-		},
-	}
-
-	s3BucketMockFailing = &mocks_storage.S3BucketMock{
-		CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-			return state.Update(healthcheck.StatusCritical, "mocked s3 bucket critical", 500)
-		},
-		GetFunc: func(key string) (io.ReadCloser, *int64, error) {
-			return nil, nil, errors.New("error with S3 bucket Get(key)")
-		},
-	}
-
-	funcDoGetS3BucketOK = func() (storage.S3Bucket, error) {
-		return s3BucketMock, nil
-	}
-
-	funcDoGetS3BucketFail = func() (storage.S3Bucket, error) {
-		return s3BucketMockFailing, nil
-	}
-
+	//Interactive API client
 	funcDoGetInteractivesAPIClientOk = func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 		return &mocks_routes.InteractivesAPIClientMock{
 			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
@@ -117,7 +90,31 @@ var (
 			},
 		}, nil
 	}
+
+	funcDoGetStorageProviderOk = func(cfg *config.Config) (storage.Provider, error) {
+		return &mocks_storage.ProviderMock{
+			CheckerFunc: func() func(context.Context, *healthcheck.CheckState) error {
+				return func(_ context.Context, s *healthcheck.CheckState) error {
+					return s.Update(healthcheck.StatusOK, "mocked storage provider healthy", 0)
+				}
+			},
+			GetFunc: func(context.Context, string) (io.ReadCloser, error) {
+				return io.NopCloser(strings.NewReader("content")), nil
+			},
+		}, nil
+	}
 )
+
+// NewMockHTTPClient mocks HTTP Client
+func newMockHTTPClient(r *http.Response, err error) *dphttp.ClienterMock {
+	return &dphttp.ClienterMock{
+		SetPathsWithNoRetriesFunc: func(paths []string) {},
+		GetPathsWithNoRetriesFunc: func() []string { return []string{} },
+		DoFunc: func(ctx context.Context, req *http.Request) (*http.Response, error) {
+			return r, err
+		},
+	}
+}
 
 func TestConstructorNew(t *testing.T) {
 	Convey("New returns a new uninitialised service", t, func() {
@@ -128,8 +125,8 @@ func TestConstructorNew(t *testing.T) {
 			DoGetHealthClientFunc:          funcDoGetHealthClient,
 			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
 			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
-			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
 			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 		cfg, err := config.Get()
@@ -148,8 +145,8 @@ func TestInitSuccess(t *testing.T) {
 			DoGetHealthClientFunc:          funcDoGetHealthClient,
 			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
 			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
-			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
 			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -191,9 +188,9 @@ func TestInitFailure(t *testing.T) {
 	Convey("Given failure to create healthcheck", t, func() {
 		initMock := &mocks_service.InitialiserMock{
 			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetS3BucketFunc:              funcDoGetS3BucketOK,
 			DoGetHealthCheckFunc:           funcDoGetHealthCheckFail,
 			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -227,9 +224,9 @@ func TestInitFailure(t *testing.T) {
 	Convey("Given that Checkers cannot be registered", t, func() {
 		initMock := &mocks_service.InitialiserMock{
 			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetS3BucketFunc:              funcDoGetS3BucketFail,
 			DoGetHealthCheckFunc:           funcDoGetHealthAddCheckerFail,
 			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -273,6 +270,7 @@ func TestStart(t *testing.T) {
 			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
 			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
 			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
 		}
 		serverWg.Add(1)
 

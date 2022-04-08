@@ -18,6 +18,9 @@ var (
 	statusNoContentFunc = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}
+	redirectFunc = func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMovedPermanently)
+	}
 )
 
 func checkPathVariablesHandler(t *testing.T, slug, resourceId, catchall string) func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +72,7 @@ func TestRoutes(t *testing.T) {
 
 	Convey("Given router setup to return StatusNoContent[204] for healthcheck and interactives", t, func() {
 		r := mux.NewRouter()
-		routes.Setup(cfg, r, statusNoContentFunc, statusNoContentFunc, statusNoContentFunc)
+		routes.Setup(cfg, r, statusNoContentFunc, redirectFunc, redirectFunc)
 
 		Convey("when "+routes.HealthEndpoint+" is called", func() {
 			req := httptest.NewRequest("GET", routes.HealthEndpoint, nil)
@@ -89,8 +92,8 @@ func TestRoutes(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			Convey("then 204 is returned", func() {
-				So(w.Code, ShouldEqual, http.StatusNoContent)
+			Convey("then 301 is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusMovedPermanently)
 			})
 		})
 	})
@@ -98,12 +101,11 @@ func TestRoutes(t *testing.T) {
 	type test struct{ method, url, slug, resourceId, catchall string }
 
 	Convey("Given router setup to check route variables", t, func() {
-		Convey("when a mapped route is called", func() {
+
+		Convey("when a mapped redirect route is called", func() {
 			cases := map[string]test{
-				"slug-and-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
-				"embedded-slug-and-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
-				"resource-id":                   {http.MethodGet, fmt.Sprintf("/%s/%s", resourceType, validResourceId), "", validResourceId, ""},
-				"embedded-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s/embed", resourceType, validResourceId), "", validResourceId, ""},
+				"resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s", resourceType, validResourceId), "", validResourceId, ""},
+				"embedded-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s/embed", resourceType, validResourceId), "", validResourceId, ""},
 			}
 
 			for name, testReq := range cases {
@@ -113,7 +115,30 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
+				routes.Setup(cfg, r, nil, h, redirectFunc)
+
+				r.ServeHTTP(w, req)
+
+				Convey(fmt.Sprintf("then 204 is returned for %s", name), func() {
+					So(w.Code, ShouldEqual, http.StatusMovedPermanently)
+				})
+			}
+		})
+
+		Convey("when a mapped route is called", func() {
+			cases := map[string]test{
+				"slug-and-resource-id":          {http.MethodGet, fmt.Sprintf("/%s/%s-%s", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
+				"embedded-slug-and-resource-id": {http.MethodGet, fmt.Sprintf("/%s/%s-%s/embed", resourceType, validSlug, validResourceId), validSlug, validResourceId, ""},
+			}
+
+			for name, testReq := range cases {
+
+				req := httptest.NewRequest(testReq.method, testReq.url, nil)
+				w := httptest.NewRecorder()
+
+				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
+				r := mux.NewRouter()
+				routes.Setup(cfg, r, nil, h, redirectFunc)
 
 				r.ServeHTTP(w, req)
 
@@ -144,7 +169,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
+				routes.Setup(cfg, r, nil, h, redirectFunc)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 404 is returned for %s", name), func() {
@@ -166,7 +191,7 @@ func TestRoutes(t *testing.T) {
 
 				h := checkPathVariablesHandler(t, testReq.slug, testReq.resourceId, testReq.catchall)
 				r := mux.NewRouter()
-				routes.Setup(cfg, r, nil, h, statusNoContentFunc)
+				routes.Setup(cfg, r, nil, h, redirectFunc)
 				r.ServeHTTP(w, req)
 
 				Convey(fmt.Sprintf("then 204 is returned for %s", name), func() {

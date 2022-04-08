@@ -20,7 +20,7 @@ func NewFromEmbeddedFilesystem() embeddedfs {
 
 type embeddedfs struct{}
 
-func (s embeddedfs) Get(path string) (io.ReadCloser, error) {
+func (s embeddedfs) Get(_ context.Context, path string) (io.ReadCloser, error) {
 	file, err := static.Open(fmt.Sprintf("%s%s", "embeddedfs", path))
 	if err != nil {
 		return nil, fmt.Errorf("cannot open file %w", err)

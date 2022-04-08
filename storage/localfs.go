@@ -18,7 +18,7 @@ type localfs struct {
 	root http.Dir
 }
 
-func (s localfs) Get(path string) (io.ReadCloser, error) {
+func (s localfs) Get(_ context.Context, path string) (io.ReadCloser, error) {
 	file, err := os.Open(fmt.Sprintf("%s%s", s.root, path))
 	if err != nil {
 		return nil, fmt.Errorf("cannot open file %w", err)

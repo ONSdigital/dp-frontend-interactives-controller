@@ -9,13 +9,17 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
-
-	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"strings"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
+)
+
+const (
+	RootFile = "index.html"
 )
 
 // ClientError is an interface that can be used to retrieve the status code if a client has errored
@@ -66,16 +70,20 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 
 	filename := path.Base(r.URL.Path)
 	if filename == id || filename == routes.EmbeddedSuffix[1:] { //root url
-		filename = "/index.html"
+		filename = "/"
 	} else {
 		filename = vars[routes.CatchAllVarKey]
 	}
-	if filename == "" || filename == "/" {
-		filename = "/index.html"
+
+	var err error
+	filename, err = findFile(filename, ix)
+	if err != nil {
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
+		return
 	}
 
 	//stream content to response
-	readCloser, err := clients.Storage.Get(filename)
+	readCloser, err := clients.Storage.Get(r.Context(), filename)
 	if err != nil {
 		//todo 404 from error pass back upstream?
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get stream from storage provider %w", err))
@@ -94,6 +102,22 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to write response %w", err))
 		return
 	}
+}
+
+func findFile(filename string, ix *interactives.Interactive) (string, error) {
+	if filename == "" || filename == "/" {
+		filename = RootFile
+	}
+
+	if ix.Archive != nil {
+		for _, f := range ix.Archive.Files {
+			if strings.HasSuffix(f.Name, filename) {
+				return f.Name, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("cannot find root index.html file for %s", ix.ID)
 }
 
 func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) *interactives.Interactive {

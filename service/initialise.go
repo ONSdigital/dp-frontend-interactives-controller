@@ -1,9 +1,8 @@
 package service
 
 import (
-	"context"
-	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
@@ -12,10 +11,6 @@ import (
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	s3client "github.com/ONSdigital/dp-s3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // ExternalServiceList holds the initialiser and initialisation state of external services.
@@ -40,22 +35,9 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 	return s
 }
 
-// GetHandlers creates handlers depending on config: localfs, s3, (todo) static-file-service
+// GetStorageProvider returns storage provider depending on config: localfs, s3, static files (dp-download-service)
 func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Provider, error) {
-	var sp storage.Provider
-
-	if cfg.ServeFromEmbeddedContent {
-		sp = storage.NewFromEmbeddedFilesystem()
-	} else {
-		sourceS3bucket, err := e.Init.DoGetS3Bucket()
-		if err != nil {
-			return nil, fmt.Errorf("could not get s3 bucket: %w", err)
-		}
-
-		sp = storage.NewFromS3Bucket(sourceS3bucket)
-	}
-
-	return sp, nil
+	return e.Init.DoGetStorageProvider(cfg)
 }
 
 // GetInteractivesAPIClient creates an interactives api client and sets the InteractivesApi flag to true
@@ -90,37 +72,26 @@ func (e *Init) DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer 
 	return s
 }
 
-// DoGetS3Bucket obtains a new S3 bucket client, or minio client if a non-empty LocalObjectStore is provided
-func (e *Init) DoGetS3Bucket() (storage.S3Bucket, error) {
-	//TODO awsify this...e.g. https://github.com/ONSdigital/dp-download-service/blob/c750eae9e7eaea003420aec432bc9a7322a3782c/service/external/external.go#L49
-	//if cfg.LocalObjectStore != "" {
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials("minio-access-key", "minio-secret-key", ""),
-		Endpoint:         aws.String("http://localhost:9001"),
-		Region:           aws.String("eu-west-1"),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
-	}
-
-	s, err := session.NewSession(s3Config)
-	if err != nil {
-		return nil, fmt.Errorf("could not create s3 session: %w", err)
-	}
-	s3 := s3client.NewClientWithSession("private-bucket", s)
-	//}
-
-	//s3, err := s3client.NewClient(cfg.AwsRegion, cfg.BucketName)
-	//if err != nil {
-	//	return nil, fmt.Errorf("could not create s3 client: %w", err)
-	//}
-
-	return s3, nil
-}
-
 // DoGetInteractivesApiClient returns an interactives api client
 func (e *Init) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 	apiClient := interactives.NewWithHealthClient(apiRouter)
 	return apiClient, nil
+}
+
+func (e *Init) DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+	var sp storage.Provider
+
+	if cfg.ServeFromEmbeddedContent {
+		sp = storage.NewFromEmbeddedFilesystem()
+	} else {
+		u, err := url.Parse(cfg.DownloadAPIURL)
+		if err != nil {
+			return nil, err
+		}
+		sp = storage.NewFromDownloadService(cfg.ServiceAuthToken, u.Host, u.Scheme)
+	}
+
+	return sp, nil
 }
 
 // DoGetHealthClient creates a new Health Client for the provided name and url
@@ -136,15 +107,4 @@ func (e *Init) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, versio
 	}
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 	return &hc, nil
-}
-
-// NewMockHTTPClient mocks HTTP Client
-func NewMockHTTPClient(r *http.Response, err error) *dphttp.ClienterMock {
-	return &dphttp.ClienterMock{
-		SetPathsWithNoRetriesFunc: func(paths []string) {},
-		GetPathsWithNoRetriesFunc: func() []string { return []string{} },
-		DoFunc: func(ctx context.Context, req *http.Request) (*http.Response, error) {
-			return r, err
-		},
-	}
 }

@@ -18,10 +18,10 @@ import (
 // Initialiser defines the methods to initialise external services
 type Initialiser interface {
 	DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer
-	DoGetS3Bucket() (storage.S3Bucket, error)
 	DoGetHealthClient(name, url string) *health.Client
 	DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error)
 	DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
+	DoGetStorageProvider(cfg *config.Config) (storage.Provider, error)
 }
 
 // HealthChecker defines the required methods from Healthcheck
