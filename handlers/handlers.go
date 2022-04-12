@@ -60,12 +60,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 
 	// redirect if slug mismatch
 	if slug != "" && ix.Metadata != nil && ix.Metadata.HumanReadableSlug != slug {
-		//https://github.com/golang/go/issues/28940
-		scheme := "http"
-		if r.TLS != nil {
-			scheme = "https"
-		}
-		url := fmt.Sprintf("%s://%s/%s/%s-%s%s", scheme, r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
+		url := fmt.Sprintf("/%s/%s-%s%s", routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
 		http.Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 
