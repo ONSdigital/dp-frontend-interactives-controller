@@ -102,7 +102,7 @@ func TestInteractives(t *testing.T) {
 					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 						return interactives.List{
 							Items: []interactives.Interactive{
-								{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
+								getTestInteractive(pub, nil),
 							},
 							Count:      1,
 							Offset:     0,
@@ -142,7 +142,7 @@ func TestInteractives(t *testing.T) {
 				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 					return interactives.List{
 						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
+							getTestInteractive(pub, nil),
 						},
 						Count:      1,
 						Offset:     0,
@@ -177,7 +177,7 @@ func TestInteractives(t *testing.T) {
 				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 					return interactives.List{
 						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: mData, Archive: nil},
+							getTestInteractive(pub, mData),
 						},
 						Count:      1,
 						Offset:     0,
@@ -216,7 +216,7 @@ func TestInteractives(t *testing.T) {
 				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 					return interactives.List{
 						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: mData, Archive: nil},
+							getTestInteractive(pub, mData),
 						},
 						Count:      1,
 						Offset:     0,
@@ -249,4 +249,19 @@ func TestInteractives(t *testing.T) {
 			})
 		})
 	})
+}
+
+func getTestInteractive(published bool, m *interactives.InteractiveMetadata) interactives.Interactive {
+	if m == nil {
+		m = &interactives.InteractiveMetadata{
+			HumanReadableSlug: "slug",
+			ResourceID:        "abcd123e",
+		}
+	}
+	return interactives.Interactive{
+		ID:        "123456",
+		Published: &published,
+		Metadata:  m,
+		Archive:   nil,
+	}
 }
