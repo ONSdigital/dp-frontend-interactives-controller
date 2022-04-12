@@ -131,7 +131,7 @@ func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to find resource id %s", id))
 		return
 	} else {
-		url = fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
+		url = fmt.Sprintf("/%s/%s-%s%s", routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
 	}
 
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
