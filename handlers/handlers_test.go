@@ -136,40 +136,6 @@ func TestInteractives(t *testing.T) {
 
 		})
 
-		Convey("Request to an unpublished interactive is made", func() {
-			pub := false
-			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-					return interactives.List{
-						Items: []interactives.Interactive{
-							getTestInteractive(pub, nil),
-						},
-						Count:      1,
-						Offset:     0,
-						Limit:      10,
-						TotalCount: 1,
-					}, nil
-				},
-			}
-
-			clients := routes.Clients{
-				Storage: storageProvider,
-				API:     apiMock,
-			}
-
-			handler := Interactives(&config.Config{}, clients)
-
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			w := httptest.NewRecorder()
-			handler(w, req)
-
-			Convey("then the status code is 404", func() {
-				res := w.Result()
-				defer res.Body.Close()
-				So(res.StatusCode, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
 		Convey("url with only resource-id must redirect", func() {
 			pub := true
 			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}

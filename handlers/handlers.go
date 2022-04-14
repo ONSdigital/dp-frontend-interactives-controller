@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -110,12 +109,6 @@ func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients r
 
 	if all.TotalCount != 1 {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
-		return nil, ""
-	}
-
-	// block access if interactive is unpublished
-	if !*(all.Items[0].Published) {
-		setStatusCode(r, w, http.StatusNotFound, errors.New("access prohibited for unpublished interactives"))
 		return nil, ""
 	}
 
