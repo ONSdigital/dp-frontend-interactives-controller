@@ -135,7 +135,7 @@ func TestInteractives(t *testing.T) {
 				w := httptest.NewRecorder()
 				handler(w, req)
 
-				Convey(fmt.Sprintf("then the status code is 200 and body is as expected %s", name), func() {
+				Convey(fmt.Sprintf("then the status code and body are as expected %s", name), func() {
 					res := w.Result()
 					defer res.Body.Close()
 					data, err := ioutil.ReadAll(res.Body)
@@ -240,6 +240,10 @@ func getTestInteractive(published bool, m *interactives.InteractiveMetadata) int
 		ID:        "123456",
 		Published: &published,
 		Metadata:  m,
-		Archive:   nil,
+		Archive: &interactives.InteractiveArchive{
+			Files: []*interactives.InteractiveFile{
+				{Name: "/index.html"},
+			},
+		},
 	}
 }

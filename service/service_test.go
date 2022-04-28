@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/download"
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
@@ -23,6 +24,10 @@ import (
 	dphttp "github.com/ONSdigital/dp-net/http"
 
 	. "github.com/smartystreets/goconvey/convey"
+)
+
+const (
+	expectedCheckCalls = 3
 )
 
 var (
@@ -91,7 +96,7 @@ var (
 		}, nil
 	}
 
-	funcDoGetStorageProviderOk = func(cfg *config.Config) (storage.Provider, error) {
+	funcDoGetStorageProviderOk = func(_ *config.Config, _ storage.DownloadServiceAPIClient) (storage.Provider, error) {
 		return &mocks_storage.ProviderMock{
 			CheckerFunc: func() func(context.Context, *healthcheck.CheckState) error {
 				return func(_ context.Context, s *healthcheck.CheckState) error {
@@ -100,6 +105,17 @@ var (
 			},
 			GetFunc: func(context.Context, string) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("content")), nil
+			},
+		}, nil
+	}
+
+	funcDoGetDownloadServiceAPIClientOk = func(_ *config.Config) (storage.DownloadServiceAPIClient, error) {
+		return &mocks_storage.DownloadServiceAPIClientMock{
+			CheckerFunc: func(_ context.Context, s *healthcheck.CheckState) error {
+				return s.Update(healthcheck.StatusOK, "mocked storage provider healthy", 0)
+			},
+			DownloadFunc: func(context.Context, string, string, string) (*download.Response, error) {
+				return &download.Response{Content: io.NopCloser(strings.NewReader("content"))}, nil
 			},
 		}, nil
 	}
@@ -142,11 +158,12 @@ func TestConstructorNew(t *testing.T) {
 func TestInitSuccess(t *testing.T) {
 	Convey("Given all dependencies are successfully initialised", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
-			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
-			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
-			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
+			DoGetHealthClientFunc:             funcDoGetHealthClient,
+			DoGetHealthCheckFunc:              funcDoGetHealthCheckOK,
+			DoGetHTTPServerFunc:               funcDoGetHTTPServerOK,
+			DoGetInteractivesAPIClientFunc:    funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:          funcDoGetStorageProviderOk,
+			DoGetDownloadServiceAPIClientFunc: funcDoGetDownloadServiceAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -171,7 +188,7 @@ func TestInitSuccess(t *testing.T) {
 
 						Convey("And the checkers are registered and the healthcheck", func() {
 							So(mockServiceList.HealthCheck, ShouldBeTrue)
-							So(len(hcMock.AddCheckCalls()), ShouldEqual, 2)
+							So(len(hcMock.AddCheckCalls()), ShouldEqual, expectedCheckCalls)
 							So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "storage provider")
 							So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "API router")
 							So(len(initMock.DoGetHTTPServerCalls()), ShouldEqual, 1)
@@ -187,10 +204,11 @@ func TestInitSuccess(t *testing.T) {
 func TestInitFailure(t *testing.T) {
 	Convey("Given failure to create healthcheck", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetHealthCheckFunc:           funcDoGetHealthCheckFail,
-			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
-			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
+			DoGetHealthClientFunc:             funcDoGetHealthClient,
+			DoGetHealthCheckFunc:              funcDoGetHealthCheckFail,
+			DoGetInteractivesAPIClientFunc:    funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:          funcDoGetStorageProviderOk,
+			DoGetDownloadServiceAPIClientFunc: funcDoGetDownloadServiceAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -223,10 +241,11 @@ func TestInitFailure(t *testing.T) {
 
 	Convey("Given that Checkers cannot be registered", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetHealthCheckFunc:           funcDoGetHealthAddCheckerFail,
-			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
-			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
+			DoGetHealthClientFunc:             funcDoGetHealthClient,
+			DoGetHealthCheckFunc:              funcDoGetHealthAddCheckerFail,
+			DoGetInteractivesAPIClientFunc:    funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:          funcDoGetStorageProviderOk,
+			DoGetDownloadServiceAPIClientFunc: funcDoGetDownloadServiceAPIClientOk,
 		}
 		mockServiceList := service.NewServiceList(initMock)
 
@@ -254,7 +273,7 @@ func TestInitFailure(t *testing.T) {
 
 						Convey("And all checks try to register", func() {
 							So(mockServiceList.HealthCheck, ShouldBeTrue)
-							So(len(hcMockAddFail.AddCheckCalls()), ShouldEqual, 2)
+							So(len(hcMockAddFail.AddCheckCalls()), ShouldEqual, expectedCheckCalls)
 						})
 					})
 				})
@@ -266,11 +285,12 @@ func TestInitFailure(t *testing.T) {
 func TestStart(t *testing.T) {
 	Convey("Given a correctly initialised Service with mocked dependencies", t, func() {
 		initMock := &mocks_service.InitialiserMock{
-			DoGetHealthClientFunc:          funcDoGetHealthClient,
-			DoGetHealthCheckFunc:           funcDoGetHealthCheckOK,
-			DoGetHTTPServerFunc:            funcDoGetHTTPServerOK,
-			DoGetInteractivesAPIClientFunc: funcDoGetInteractivesAPIClientOk,
-			DoGetStorageProviderFunc:       funcDoGetStorageProviderOk,
+			DoGetHealthClientFunc:             funcDoGetHealthClient,
+			DoGetHealthCheckFunc:              funcDoGetHealthCheckOK,
+			DoGetHTTPServerFunc:               funcDoGetHTTPServerOK,
+			DoGetInteractivesAPIClientFunc:    funcDoGetInteractivesAPIClientOk,
+			DoGetStorageProviderFunc:          funcDoGetStorageProviderOk,
+			DoGetDownloadServiceAPIClientFunc: funcDoGetDownloadServiceAPIClientOk,
 		}
 		serverWg.Add(1)
 

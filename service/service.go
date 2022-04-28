@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/v2/download"
-
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/handlers"
@@ -26,13 +24,13 @@ var (
 
 // Service contains the healthcheck, server and serviceList for the controller
 type Service struct {
-	Config             *config.Config
-	HealthCheck        HealthChecker
-	Server             HTTPServer
-	ServiceList        *ExternalServiceList
-	StorageProvider    storage.Provider
-	APIRouter          *health.Client
-	DownloadServiceAPI *download.Client
+	Config                   *config.Config
+	HealthCheck              HealthChecker
+	Server                   HTTPServer
+	ServiceList              *ExternalServiceList
+	StorageProvider          storage.Provider
+	APIRouter                *health.Client
+	DownloadServiceAPIClient storage.DownloadServiceAPIClient
 }
 
 // New creates a new service
@@ -53,13 +51,13 @@ func (s *Service) Init(ctx context.Context) (err error) {
 		return err
 	}
 
-	s.DownloadServiceAPI, err = s.ServiceList.GetDownloadServiceAPIClient(s.Config)
+	s.DownloadServiceAPIClient, err = s.ServiceList.GetDownloadServiceAPIClient(s.Config)
 	if err != nil {
 		return err
 	}
 
 	// Init storage provider
-	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config, s.DownloadServiceAPI)
+	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config, s.DownloadServiceAPIClient)
 	if err != nil {
 		return fmt.Errorf("failed to initialise storage provider %w", err)
 	}
@@ -160,8 +158,8 @@ func (s *Service) registerCheckers(ctx context.Context) (err error) {
 		log.Error(ctx, "failed to add API router health checker", err)
 	}
 
-	if s.DownloadServiceAPI != nil {
-		if err = s.HealthCheck.AddCheck("DownloadService API", s.DownloadServiceAPI.Checker); err != nil {
+	if s.DownloadServiceAPIClient != nil {
+		if err = s.HealthCheck.AddCheck("DownloadService API", s.DownloadServiceAPIClient.Checker); err != nil {
 			hasErrors = true
 			log.Error(ctx, "failed to add DownloadService API health checker", err)
 		}

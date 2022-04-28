@@ -154,7 +154,18 @@ func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.Interactiv
 			pub := true
 			return interactives.List{
 				Items: []interactives.Interactive{
-					{ID: "123456", Archive: nil, Published: &pub},
+					{
+						ID:        "123456",
+						Published: &pub,
+						Metadata: &interactives.InteractiveMetadata{
+							HumanReadableSlug: "a-slug", ResourceID: "resid123",
+						},
+						Archive: &interactives.InteractiveArchive{
+							Files: []*interactives.InteractiveFile{
+								{Name: "/index.html"},
+							},
+						},
+					},
 				},
 				Count:      1,
 				Offset:     0,
@@ -165,7 +176,7 @@ func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.Interactiv
 	}, nil
 }
 
-func DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+func DoGetStorageProvider(_ *config.Config, _ storage.DownloadServiceAPIClient) (storage.Provider, error) {
 	//note: real implementation (mock is available: mocks_storage.ProviderMock{})
 	return storage.NewFromEmbeddedFilesystem(), nil
 }

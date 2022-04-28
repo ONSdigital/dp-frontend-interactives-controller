@@ -34,7 +34,7 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 	return s
 }
 
-func (e *ExternalServiceList) GetDownloadServiceAPIClient(cfg *config.Config) (*download.Client, error) {
+func (e *ExternalServiceList) GetDownloadServiceAPIClient(cfg *config.Config) (storage.DownloadServiceAPIClient, error) {
 	if cfg.ServeFromEmbeddedContent {
 		return nil, nil
 	}
@@ -42,7 +42,7 @@ func (e *ExternalServiceList) GetDownloadServiceAPIClient(cfg *config.Config) (*
 }
 
 // GetStorageProvider returns storage provider depending on config: localfs, s3, static files (dp-download-service)
-func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config, c *download.Client) (storage.Provider, error) {
+func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config, c storage.DownloadServiceAPIClient) (storage.Provider, error) {
 	return e.Init.DoGetStorageProvider(cfg, c)
 }
 
@@ -84,12 +84,12 @@ func (e *Init) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.Inte
 	return apiClient, nil
 }
 
-func (e *Init) DoGetDownloadServiceAPIClient(cfg *config.Config) (*download.Client, error) {
+func (e *Init) DoGetDownloadServiceAPIClient(cfg *config.Config) (storage.DownloadServiceAPIClient, error) {
 	apiClient := download.NewAPIClient(cfg.DownloadAPIURL)
 	return apiClient, nil
 }
 
-func (e *Init) DoGetStorageProvider(cfg *config.Config, downloadClient *download.Client) (storage.Provider, error) {
+func (e *Init) DoGetStorageProvider(cfg *config.Config, downloadClient storage.DownloadServiceAPIClient) (storage.Provider, error) {
 	var sp storage.Provider
 
 	if cfg.ServeFromEmbeddedContent {

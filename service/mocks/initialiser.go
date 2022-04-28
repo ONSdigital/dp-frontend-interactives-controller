@@ -23,6 +23,9 @@ var _ service.Initialiser = &InitialiserMock{}
 //
 // 		// make and configure a mocked service.Initialiser
 // 		mockedInitialiser := &InitialiserMock{
+// 			DoGetDownloadServiceAPIClientFunc: func(cfg *config.Config) (storage.DownloadServiceAPIClient, error) {
+// 				panic("mock out the DoGetDownloadServiceAPIClient method")
+// 			},
 // 			DoGetHTTPServerFunc: func(bindAddr string, router http.Handler) service.HTTPServer {
 // 				panic("mock out the DoGetHTTPServer method")
 // 			},
@@ -35,7 +38,7 @@ var _ service.Initialiser = &InitialiserMock{}
 // 			DoGetInteractivesAPIClientFunc: func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 // 				panic("mock out the DoGetInteractivesAPIClient method")
 // 			},
-// 			DoGetStorageProviderFunc: func(cfg *config.Config) (storage.Provider, error) {
+// 			DoGetStorageProviderFunc: func(cfg *config.Config, c storage.DownloadServiceAPIClient) (storage.Provider, error) {
 // 				panic("mock out the DoGetStorageProvider method")
 // 			},
 // 		}
@@ -45,6 +48,9 @@ var _ service.Initialiser = &InitialiserMock{}
 //
 // 	}
 type InitialiserMock struct {
+	// DoGetDownloadServiceAPIClientFunc mocks the DoGetDownloadServiceAPIClient method.
+	DoGetDownloadServiceAPIClientFunc func(cfg *config.Config) (storage.DownloadServiceAPIClient, error)
+
 	// DoGetHTTPServerFunc mocks the DoGetHTTPServer method.
 	DoGetHTTPServerFunc func(bindAddr string, router http.Handler) service.HTTPServer
 
@@ -58,10 +64,15 @@ type InitialiserMock struct {
 	DoGetInteractivesAPIClientFunc func(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
 
 	// DoGetStorageProviderFunc mocks the DoGetStorageProvider method.
-	DoGetStorageProviderFunc func(cfg *config.Config) (storage.Provider, error)
+	DoGetStorageProviderFunc func(cfg *config.Config, c storage.DownloadServiceAPIClient) (storage.Provider, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// DoGetDownloadServiceAPIClient holds details about calls to the DoGetDownloadServiceAPIClient method.
+		DoGetDownloadServiceAPIClient []struct {
+			// Cfg is the cfg argument value.
+			Cfg *config.Config
+		}
 		// DoGetHTTPServer holds details about calls to the DoGetHTTPServer method.
 		DoGetHTTPServer []struct {
 			// BindAddr is the bindAddr argument value.
@@ -96,13 +107,47 @@ type InitialiserMock struct {
 		DoGetStorageProvider []struct {
 			// Cfg is the cfg argument value.
 			Cfg *config.Config
+			// C is the c argument value.
+			C storage.DownloadServiceAPIClient
 		}
 	}
-	lockDoGetHTTPServer            sync.RWMutex
-	lockDoGetHealthCheck           sync.RWMutex
-	lockDoGetHealthClient          sync.RWMutex
-	lockDoGetInteractivesAPIClient sync.RWMutex
-	lockDoGetStorageProvider       sync.RWMutex
+	lockDoGetDownloadServiceAPIClient sync.RWMutex
+	lockDoGetHTTPServer               sync.RWMutex
+	lockDoGetHealthCheck              sync.RWMutex
+	lockDoGetHealthClient             sync.RWMutex
+	lockDoGetInteractivesAPIClient    sync.RWMutex
+	lockDoGetStorageProvider          sync.RWMutex
+}
+
+// DoGetDownloadServiceAPIClient calls DoGetDownloadServiceAPIClientFunc.
+func (mock *InitialiserMock) DoGetDownloadServiceAPIClient(cfg *config.Config) (storage.DownloadServiceAPIClient, error) {
+	if mock.DoGetDownloadServiceAPIClientFunc == nil {
+		panic("InitialiserMock.DoGetDownloadServiceAPIClientFunc: method is nil but Initialiser.DoGetDownloadServiceAPIClient was just called")
+	}
+	callInfo := struct {
+		Cfg *config.Config
+	}{
+		Cfg: cfg,
+	}
+	mock.lockDoGetDownloadServiceAPIClient.Lock()
+	mock.calls.DoGetDownloadServiceAPIClient = append(mock.calls.DoGetDownloadServiceAPIClient, callInfo)
+	mock.lockDoGetDownloadServiceAPIClient.Unlock()
+	return mock.DoGetDownloadServiceAPIClientFunc(cfg)
+}
+
+// DoGetDownloadServiceAPIClientCalls gets all the calls that were made to DoGetDownloadServiceAPIClient.
+// Check the length with:
+//     len(mockedInitialiser.DoGetDownloadServiceAPIClientCalls())
+func (mock *InitialiserMock) DoGetDownloadServiceAPIClientCalls() []struct {
+	Cfg *config.Config
+} {
+	var calls []struct {
+		Cfg *config.Config
+	}
+	mock.lockDoGetDownloadServiceAPIClient.RLock()
+	calls = mock.calls.DoGetDownloadServiceAPIClient
+	mock.lockDoGetDownloadServiceAPIClient.RUnlock()
+	return calls
 }
 
 // DoGetHTTPServer calls DoGetHTTPServerFunc.
@@ -250,19 +295,21 @@ func (mock *InitialiserMock) DoGetInteractivesAPIClientCalls() []struct {
 }
 
 // DoGetStorageProvider calls DoGetStorageProviderFunc.
-func (mock *InitialiserMock) DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+func (mock *InitialiserMock) DoGetStorageProvider(cfg *config.Config, c storage.DownloadServiceAPIClient) (storage.Provider, error) {
 	if mock.DoGetStorageProviderFunc == nil {
 		panic("InitialiserMock.DoGetStorageProviderFunc: method is nil but Initialiser.DoGetStorageProvider was just called")
 	}
 	callInfo := struct {
 		Cfg *config.Config
+		C   storage.DownloadServiceAPIClient
 	}{
 		Cfg: cfg,
+		C:   c,
 	}
 	mock.lockDoGetStorageProvider.Lock()
 	mock.calls.DoGetStorageProvider = append(mock.calls.DoGetStorageProvider, callInfo)
 	mock.lockDoGetStorageProvider.Unlock()
-	return mock.DoGetStorageProviderFunc(cfg)
+	return mock.DoGetStorageProviderFunc(cfg, c)
 }
 
 // DoGetStorageProviderCalls gets all the calls that were made to DoGetStorageProvider.
@@ -270,9 +317,11 @@ func (mock *InitialiserMock) DoGetStorageProvider(cfg *config.Config) (storage.P
 //     len(mockedInitialiser.DoGetStorageProviderCalls())
 func (mock *InitialiserMock) DoGetStorageProviderCalls() []struct {
 	Cfg *config.Config
+	C   storage.DownloadServiceAPIClient
 } {
 	var calls []struct {
 		Cfg *config.Config
+		C   storage.DownloadServiceAPIClient
 	}
 	mock.lockDoGetStorageProvider.RLock()
 	calls = mock.calls.DoGetStorageProvider
