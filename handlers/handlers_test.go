@@ -114,17 +114,7 @@ func TestInteractives(t *testing.T) {
 					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 						return interactives.List{
 							Items: []interactives.Interactive{
-								{
-									ID:        "123456",
-									Published: &pub,
-									Metadata:  nil,
-									Archive: &interactives.InteractiveArchive{
-										Name: "archive.zip",
-										Files: []*interactives.InteractiveFile{
-											{RootFile, "mimetype", 1},
-										},
-									},
-								},
+								getTestInteractive(pub, nil),
 							},
 							Count:      1,
 							Offset:     0,
@@ -158,40 +148,6 @@ func TestInteractives(t *testing.T) {
 
 		})
 
-		Convey("Request to an unpublished interactive is made", func() {
-			pub := false
-			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-					return interactives.List{
-						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: nil, Archive: nil},
-						},
-						Count:      1,
-						Offset:     0,
-						Limit:      10,
-						TotalCount: 1,
-					}, nil
-				},
-			}
-
-			clients := routes.Clients{
-				Storage: storageProvider,
-				API:     apiMock,
-			}
-
-			handler := Interactives(&config.Config{}, clients)
-
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			w := httptest.NewRecorder()
-			handler(w, req)
-
-			Convey("then the status code is 404", func() {
-				res := w.Result()
-				defer res.Body.Close()
-				So(res.StatusCode, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
 		Convey("url with only resource-id must redirect", func() {
 			pub := true
 			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
@@ -199,7 +155,7 @@ func TestInteractives(t *testing.T) {
 				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 					return interactives.List{
 						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: mData, Archive: nil},
+							getTestInteractive(pub, mData),
 						},
 						Count:      1,
 						Offset:     0,
@@ -238,7 +194,7 @@ func TestInteractives(t *testing.T) {
 				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
 					return interactives.List{
 						Items: []interactives.Interactive{
-							{ID: "123456", Published: &pub, Metadata: mData, Archive: nil},
+							getTestInteractive(pub, mData),
 						},
 						Count:      1,
 						Offset:     0,
@@ -271,4 +227,19 @@ func TestInteractives(t *testing.T) {
 			})
 		})
 	})
+}
+
+func getTestInteractive(published bool, m *interactives.InteractiveMetadata) interactives.Interactive {
+	if m == nil {
+		m = &interactives.InteractiveMetadata{
+			HumanReadableSlug: "slug",
+			ResourceID:        "abcd123e",
+		}
+	}
+	return interactives.Interactive{
+		ID:        "123456",
+		Published: &published,
+		Metadata:  m,
+		Archive:   nil,
+	}
 }

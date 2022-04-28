@@ -18,7 +18,7 @@ type downloadService struct {
 }
 
 func (s downloadService) Get(ctx context.Context, path string) (io.ReadCloser, error) {
-	return s.client.Download(ctx, "todo", s.serviceAuthToken, path)
+	return s.client.Download(ctx, "", s.serviceAuthToken, path)
 }
 
 func (s downloadService) Checker() func(context.Context, *healthcheck.CheckState) error {

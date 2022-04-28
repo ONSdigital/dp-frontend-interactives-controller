@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -56,7 +55,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	id := vars[routes.ResourceIdVarKey]
 	slug := vars[routes.SlugVarKey]
 
-	ix := getInteractive(w, r, id, clients, serviceAuthToken)
+	ix, url := getInteractive(w, r, id, clients, serviceAuthToken)
 	if ix == nil {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to find resource id %s", id))
 		return
@@ -64,7 +63,6 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 
 	// redirect if slug mismatch
 	if slug != "" && ix.Metadata != nil && ix.Metadata.HumanReadableSlug != slug {
-		url := fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
 		http.Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 
@@ -85,8 +83,8 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	//stream content to response
 	readCloser, err := clients.Storage.Get(r.Context(), filename)
 	if err != nil {
-		//todo 404 from error pass back upstream?
-		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get stream from storage provider %w", err))
+		//todo 404 from error pass back upstream? this could be auth - so 404
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to get stream from storage provider %w", err))
 		return
 	}
 	defer closeAndLogError(ctx, readCloser)
@@ -120,7 +118,7 @@ func findFile(filename string, ix *interactives.Interactive) (string, error) {
 	return "", fmt.Errorf("cannot find root index.html file for %s", ix.ID)
 }
 
-func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) *interactives.Interactive {
+func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) (*interactives.Interactive, string) {
 	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
 		&interactives.QueryParams{
 			Offset: 0,
@@ -130,32 +128,26 @@ func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients r
 	)
 	if err != nil {
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
-		return nil
+		return nil, ""
 	}
 
 	if all.TotalCount != 1 {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
-		return nil
+		return nil, ""
 	}
 
-	// block access if interactive is unpublished
-	if !*(all.Items[0].Published) {
-		setStatusCode(r, w, http.StatusNotFound, errors.New("access prohibited for unpublished interactives"))
-		return nil
-	}
-	return &all.Items[0]
+	first := &all.Items[0]
+	return first, fmt.Sprintf("/%s/%s-%s%s", routes.ResourceTypeKey, first.Metadata.HumanReadableSlug, first.Metadata.ResourceID, routes.EmbeddedSuffix)
+
 }
 
 func redirectToFullyQualifiedURL(w http.ResponseWriter, r *http.Request, clients routes.Clients, serviceAuthToken string) {
 	vars := mux.Vars(r)
 	id := vars[routes.ResourceIdVarKey]
-	url := ""
-
-	if ix := getInteractive(w, r, id, clients, serviceAuthToken); ix == nil {
+	ix, url := getInteractive(w, r, id, clients, serviceAuthToken)
+	if ix == nil {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to find resource id %s", id))
 		return
-	} else {
-		url = fmt.Sprintf("http://%s/%s/%s-%s%s", r.Host, routes.ResourceTypeKey, ix.Metadata.HumanReadableSlug, ix.Metadata.ResourceID, routes.EmbeddedSuffix)
 	}
 
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
