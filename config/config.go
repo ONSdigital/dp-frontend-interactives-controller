@@ -27,7 +27,7 @@ func Get() (*Config, error) {
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		ServeFromEmbeddedContent:   false,
-		APIRouterURL:               "http://localhost:23200/v1",
+		APIRouterURL:               "http://localhost:23200",
 		DownloadAPIURL:             "http://localhost:23600",
 	}
 

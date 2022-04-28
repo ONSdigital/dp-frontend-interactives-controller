@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/v2/download"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
@@ -21,7 +22,8 @@ type Initialiser interface {
 	DoGetHealthClient(name, url string) *health.Client
 	DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error)
 	DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error)
-	DoGetStorageProvider(cfg *config.Config) (storage.Provider, error)
+	DoGetStorageProvider(cfg *config.Config, c *download.Client) (storage.Provider, error)
+	DoGetDownloadServiceAPIClient(cfg *config.Config) (*download.Client, error)
 }
 
 // HealthChecker defines the required methods from Healthcheck

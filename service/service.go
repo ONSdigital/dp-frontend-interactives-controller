@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ONSdigital/dp-api-clients-go/v2/download"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
@@ -25,12 +26,13 @@ var (
 
 // Service contains the healthcheck, server and serviceList for the controller
 type Service struct {
-	Config          *config.Config
-	HealthCheck     HealthChecker
-	Server          HTTPServer
-	ServiceList     *ExternalServiceList
-	StorageProvider storage.Provider
-	APIRouter       *health.Client
+	Config             *config.Config
+	HealthCheck        HealthChecker
+	Server             HTTPServer
+	ServiceList        *ExternalServiceList
+	StorageProvider    storage.Provider
+	APIRouter          *health.Client
+	DownloadServiceAPI *download.Client
 }
 
 // New creates a new service
@@ -45,14 +47,19 @@ func New(cfg *config.Config, serviceList *ExternalServiceList) *Service {
 func (s *Service) Init(ctx context.Context) (err error) {
 
 	// API router & clients
-	s.APIRouter = health.NewClient("api-router", s.Config.APIRouterURL)
+	s.APIRouter = s.ServiceList.GetHealthClient("api-router", s.Config.APIRouterURL)
 	interactivesAPIClient, err := s.ServiceList.GetInteractivesAPIClient(s.APIRouter)
 	if err != nil {
 		return err
 	}
 
+	s.DownloadServiceAPI, err = s.ServiceList.GetDownloadServiceAPIClient(s.Config)
+	if err != nil {
+		return err
+	}
+
 	// Init storage provider
-	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config)
+	s.StorageProvider, err = s.ServiceList.GetStorageProvider(s.Config, s.DownloadServiceAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialise storage provider %w", err)
 	}
@@ -151,6 +158,13 @@ func (s *Service) registerCheckers(ctx context.Context) (err error) {
 	if err = s.HealthCheck.AddCheck("API router", s.APIRouter.Checker); err != nil {
 		hasErrors = true
 		log.Error(ctx, "failed to add API router health checker", err)
+	}
+
+	if s.DownloadServiceAPI != nil {
+		if err = s.HealthCheck.AddCheck("DownloadService API", s.DownloadServiceAPI.Checker); err != nil {
+			hasErrors = true
+			log.Error(ctx, "failed to add DownloadService API health checker", err)
+		}
 	}
 
 	if hasErrors {

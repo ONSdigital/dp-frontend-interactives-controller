@@ -2,32 +2,23 @@ package storage
 
 import (
 	"context"
-	openapi "github.com/ONSdigital/dp-frontend-interactives-controller/internal/dp-download-service-client/go"
+	"github.com/ONSdigital/dp-api-clients-go/v2/download"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
 	"net/http"
 )
 
-func NewFromDownloadService(serviceAuthToken, host, scheme string) downloadService {
-	cfg := openapi.NewConfiguration()
-	cfg.Host = host
-	cfg.Scheme = scheme
-	cfg.AddDefaultHeader("Authorization", "Bearer "+serviceAuthToken)
-	return downloadService{client: openapi.NewAPIClient(cfg)}
+func NewFromDownloadService(serviceAuthToken string, client *download.Client) downloadService {
+	return downloadService{serviceAuthToken, client}
 }
 
 type downloadService struct {
-	client *openapi.APIClient
+	serviceAuthToken string
+	client           *download.Client
 }
 
 func (s downloadService) Get(ctx context.Context, path string) (io.ReadCloser, error) {
-	req := s.client.DownloadFileApi.DownloadsNewFilepathGet(ctx, path)
-	_, resp, err := s.client.DownloadFileApi.DownloadsNewFilepathGetExecute(req)
-	if resp.StatusCode == 200 {
-		//ignore undefined response type errors
-		return resp.Body, nil
-	}
-	return resp.Body, err
+	return s.client.Download(ctx, "todo", s.serviceAuthToken, path)
 }
 
 func (s downloadService) Checker() func(context.Context, *healthcheck.CheckState) error {

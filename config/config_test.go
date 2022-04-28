@@ -25,7 +25,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
 				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
 				So(cfg.ServeFromEmbeddedContent, ShouldBeFalse)
-				So(cfg.APIRouterURL, ShouldEqual, "http://localhost:23200/v1")
+				So(cfg.APIRouterURL, ShouldEqual, "http://localhost:23200")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

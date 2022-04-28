@@ -1,9 +1,7 @@
 package service
 
 import (
-	"net/http"
-	"net/url"
-
+	"github.com/ONSdigital/dp-api-clients-go/v2/download"
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
@@ -11,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
+	"net/http"
 )
 
 // ExternalServiceList holds the initialiser and initialisation state of external services.
@@ -35,9 +34,16 @@ func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler
 	return s
 }
 
+func (e *ExternalServiceList) GetDownloadServiceAPIClient(cfg *config.Config) (*download.Client, error) {
+	if cfg.ServeFromEmbeddedContent {
+		return nil, nil
+	}
+	return e.Init.DoGetDownloadServiceAPIClient(cfg)
+}
+
 // GetStorageProvider returns storage provider depending on config: localfs, s3, static files (dp-download-service)
-func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config) (storage.Provider, error) {
-	return e.Init.DoGetStorageProvider(cfg)
+func (e *ExternalServiceList) GetStorageProvider(cfg *config.Config, c *download.Client) (storage.Provider, error) {
+	return e.Init.DoGetStorageProvider(cfg, c)
 }
 
 // GetInteractivesAPIClient creates an interactives api client and sets the InteractivesApi flag to true
@@ -74,21 +80,22 @@ func (e *Init) DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer 
 
 // DoGetInteractivesApiClient returns an interactives api client
 func (e *Init) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
-	apiClient := interactives.NewWithHealthClient(apiRouter)
+	apiClient := interactives.NewWithHealthClient(apiRouter, "v1")
 	return apiClient, nil
 }
 
-func (e *Init) DoGetStorageProvider(cfg *config.Config) (storage.Provider, error) {
+func (e *Init) DoGetDownloadServiceAPIClient(cfg *config.Config) (*download.Client, error) {
+	apiClient := download.NewAPIClient(cfg.DownloadAPIURL)
+	return apiClient, nil
+}
+
+func (e *Init) DoGetStorageProvider(cfg *config.Config, downloadClient *download.Client) (storage.Provider, error) {
 	var sp storage.Provider
 
 	if cfg.ServeFromEmbeddedContent {
 		sp = storage.NewFromEmbeddedFilesystem()
 	} else {
-		u, err := url.Parse(cfg.DownloadAPIURL)
-		if err != nil {
-			return nil, err
-		}
-		sp = storage.NewFromDownloadService(cfg.ServiceAuthToken, u.Host, u.Scheme)
+		sp = storage.NewFromDownloadService(cfg.ServiceAuthToken, downloadClient)
 	}
 
 	return sp, nil
