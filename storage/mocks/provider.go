@@ -246,7 +246,7 @@ var _ storage.DownloadServiceAPIClient = &DownloadServiceAPIClientMock{}
 // 			CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
 // 				panic("mock out the Checker method")
 // 			},
-// 			DownloadFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, path string) (*download.Response, error) {
+// 			DownloadFunc: func(ctx context.Context, path string) (*download.Response, error) {
 // 				panic("mock out the Download method")
 // 			},
 // 		}
@@ -260,7 +260,7 @@ type DownloadServiceAPIClientMock struct {
 	CheckerFunc func(ctx context.Context, state *healthcheck.CheckState) error
 
 	// DownloadFunc mocks the Download method.
-	DownloadFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, path string) (*download.Response, error)
+	DownloadFunc func(ctx context.Context, path string) (*download.Response, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -275,10 +275,6 @@ type DownloadServiceAPIClientMock struct {
 		Download []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// UserAuthToken is the userAuthToken argument value.
-			UserAuthToken string
-			// ServiceAuthToken is the serviceAuthToken argument value.
-			ServiceAuthToken string
 			// Path is the path argument value.
 			Path string
 		}
@@ -323,41 +319,33 @@ func (mock *DownloadServiceAPIClientMock) CheckerCalls() []struct {
 }
 
 // Download calls DownloadFunc.
-func (mock *DownloadServiceAPIClientMock) Download(ctx context.Context, userAuthToken string, serviceAuthToken string, path string) (*download.Response, error) {
+func (mock *DownloadServiceAPIClientMock) Download(ctx context.Context, path string) (*download.Response, error) {
 	if mock.DownloadFunc == nil {
 		panic("DownloadServiceAPIClientMock.DownloadFunc: method is nil but DownloadServiceAPIClient.Download was just called")
 	}
 	callInfo := struct {
-		Ctx              context.Context
-		UserAuthToken    string
-		ServiceAuthToken string
-		Path             string
+		Ctx  context.Context
+		Path string
 	}{
-		Ctx:              ctx,
-		UserAuthToken:    userAuthToken,
-		ServiceAuthToken: serviceAuthToken,
-		Path:             path,
+		Ctx:  ctx,
+		Path: path,
 	}
 	mock.lockDownload.Lock()
 	mock.calls.Download = append(mock.calls.Download, callInfo)
 	mock.lockDownload.Unlock()
-	return mock.DownloadFunc(ctx, userAuthToken, serviceAuthToken, path)
+	return mock.DownloadFunc(ctx, path)
 }
 
 // DownloadCalls gets all the calls that were made to Download.
 // Check the length with:
 //     len(mockedDownloadServiceAPIClient.DownloadCalls())
 func (mock *DownloadServiceAPIClientMock) DownloadCalls() []struct {
-	Ctx              context.Context
-	UserAuthToken    string
-	ServiceAuthToken string
-	Path             string
+	Ctx  context.Context
+	Path string
 } {
 	var calls []struct {
-		Ctx              context.Context
-		UserAuthToken    string
-		ServiceAuthToken string
-		Path             string
+		Ctx  context.Context
+		Path string
 	}
 	mock.lockDownload.RLock()
 	calls = mock.calls.Download

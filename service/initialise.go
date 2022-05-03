@@ -85,7 +85,7 @@ func (e *Init) DoGetInteractivesAPIClient(apiRouter *health.Client) (routes.Inte
 }
 
 func (e *Init) DoGetDownloadServiceAPIClient(cfg *config.Config) (storage.DownloadServiceAPIClient, error) {
-	apiClient := download.NewAPIClient(cfg.DownloadAPIURL)
+	apiClient := download.NewAPIClient(cfg.DownloadAPIURL, cfg.ServiceAuthToken)
 	return apiClient, nil
 }
 
@@ -95,7 +95,7 @@ func (e *Init) DoGetStorageProvider(cfg *config.Config, downloadClient storage.D
 	if cfg.ServeFromEmbeddedContent {
 		sp = storage.NewFromEmbeddedFilesystem()
 	} else {
-		sp = storage.NewFromDownloadService(cfg.ServiceAuthToken, downloadClient)
+		sp = storage.NewFromDownloadService(downloadClient)
 	}
 
 	return sp, nil

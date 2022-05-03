@@ -114,7 +114,7 @@ var (
 			CheckerFunc: func(_ context.Context, s *healthcheck.CheckState) error {
 				return s.Update(healthcheck.StatusOK, "mocked storage provider healthy", 0)
 			},
-			DownloadFunc: func(context.Context, string, string, string) (*download.Response, error) {
+			DownloadFunc: func(context.Context, string) (*download.Response, error) {
 				return &download.Response{Content: io.NopCloser(strings.NewReader("content"))}, nil
 			},
 		}, nil

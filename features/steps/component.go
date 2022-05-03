@@ -2,10 +2,6 @@ package steps
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
-	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
-	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"log"
 	"net/http"
 	"os"
@@ -13,12 +9,16 @@ import (
 	"syscall"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/health"
+	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	componenttest "github.com/ONSdigital/dp-component-test"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
+	mocks_routes "github.com/ONSdigital/dp-frontend-interactives-controller/routes/mocks"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/service"
 	mocks_service "github.com/ONSdigital/dp-frontend-interactives-controller/service/mocks"
+	"github.com/ONSdigital/dp-frontend-interactives-controller/storage"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dplog "github.com/ONSdigital/log.go/log"
+	dplog "github.com/ONSdigital/log.go/v2/log"
 	"github.com/chromedp/chromedp"
 	"github.com/maxcnunes/httpfake"
 )
@@ -90,7 +90,7 @@ func (c *Component) Reset() *Component {
 }
 
 func (c *Component) Close() error {
-	dplog.Event(c.ctx, "Shutting down app from test ...")
+	dplog.Info(c.ctx, "Shutting down app from test ...")
 	if c.svc != nil {
 		_ = c.svc.Close(c.ctx)
 	}
@@ -117,7 +117,7 @@ func (c *Component) runApplication(cfg *config.Config, svcList *service.External
 
 	svc := service.New(cfg, svcList)
 	if err := svc.Init(c.ctx); err != nil {
-		dplog.Event(c.ctx, "failed to initialise service", dplog.ERROR, dplog.Error(err))
+		dplog.Error(c.ctx, "failed to initialise service", err)
 		return
 	}
 
@@ -127,9 +127,9 @@ func (c *Component) runApplication(cfg *config.Config, svcList *service.External
 		// blocks until an os interrupt or a fatal error occurs
 		select {
 		case err := <-c.errorChan:
-			dplog.Event(c.ctx, "service error received", dplog.ERROR, dplog.Error(err))
+			dplog.Error(c.ctx, "service error received", err)
 		case sig := <-signals:
-			dplog.Event(c.ctx, "os signal received", dplog.Data{"signal": sig}, dplog.INFO)
+			dplog.Info(c.ctx, "os signal received", dplog.Data{"signal": sig})
 		}
 	}()
 }

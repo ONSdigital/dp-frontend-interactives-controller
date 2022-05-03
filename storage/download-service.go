@@ -2,28 +2,24 @@ package storage
 
 import (
 	"context"
-	"fmt"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
 	"net/http"
+
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
-func NewFromDownloadService(serviceAuthToken string, client DownloadServiceAPIClient) downloadService {
-	return downloadService{serviceAuthToken, client}
+func NewFromDownloadService(client DownloadServiceAPIClient) downloadService {
+	return downloadService{client}
 }
 
 type downloadService struct {
-	serviceAuthToken string
-	client           DownloadServiceAPIClient
+	client DownloadServiceAPIClient
 }
 
 func (s downloadService) Get(ctx context.Context, path string) (io.ReadCloser, error) {
-	resp, err := s.client.Download(ctx, "", s.serviceAuthToken, path)
+	resp, err := s.client.Download(ctx, path)
 	if err != nil {
 		return nil, err
-	}
-	if resp.RedirectUrl != "" {
-		return nil, fmt.Errorf("%s redirecting to %s", path, resp.RedirectUrl)
 	}
 	return resp.Content, nil
 }
