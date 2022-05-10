@@ -123,7 +123,9 @@ func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients r
 		&interactives.QueryParams{
 			Offset: 0,
 			Limit:  1,
-			Filter: &interactives.InteractiveMetadata{ResourceID: id},
+			Filter: &interactives.InteractiveFilter{
+				Metadata: &interactives.InteractiveMetadata{ResourceID: id},
+			},
 		},
 	)
 	if err != nil {
