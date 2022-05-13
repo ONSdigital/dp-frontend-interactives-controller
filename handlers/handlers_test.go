@@ -98,7 +98,6 @@ func TestInteractives(t *testing.T) {
 		Convey("a request to a valid s3 path is made", func() {
 
 			validPath := "/valid/path/to/file.html"
-			pub := true
 			type test struct {
 				expectedStatus, totalCount int
 				expectedFileContent, path  string
@@ -111,16 +110,8 @@ func TestInteractives(t *testing.T) {
 
 			for name, testReq := range cases {
 				apiMock := &mocks_routes.InteractivesAPIClientMock{
-					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-						return interactives.List{
-							Items: []interactives.Interactive{
-								getTestInteractive(pub, nil),
-							},
-							Count:      1,
-							Offset:     0,
-							Limit:      10,
-							TotalCount: testReq.totalCount,
-						}, nil
+					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+						return listOfTestInteractives(testReq.totalCount), nil
 					},
 				}
 
@@ -152,15 +143,9 @@ func TestInteractives(t *testing.T) {
 			pub := true
 			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
 			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-					return interactives.List{
-						Items: []interactives.Interactive{
-							getTestInteractive(pub, mData),
-						},
-						Count:      1,
-						Offset:     0,
-						Limit:      10,
-						TotalCount: 1,
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+					return []interactives.Interactive{
+						getTestInteractive(pub, mData),
 					}, nil
 				},
 			}
@@ -191,15 +176,9 @@ func TestInteractives(t *testing.T) {
 			pub := true
 			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
 			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-					return interactives.List{
-						Items: []interactives.Interactive{
-							getTestInteractive(pub, mData),
-						},
-						Count:      1,
-						Offset:     0,
-						Limit:      10,
-						TotalCount: 1,
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+					return []interactives.Interactive{
+						getTestInteractive(pub, mData),
 					}, nil
 				},
 			}
@@ -227,6 +206,14 @@ func TestInteractives(t *testing.T) {
 			})
 		})
 	})
+}
+
+func listOfTestInteractives(num int) []interactives.Interactive {
+	retVal := []interactives.Interactive{}
+	for i := 0; i < num; i++ {
+		retVal = append(retVal, getTestInteractive(true, nil))
+	}
+	return retVal
 }
 
 func getTestInteractive(published bool, m *interactives.InteractiveMetadata) interactives.Interactive {

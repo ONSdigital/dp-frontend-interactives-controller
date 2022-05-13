@@ -120,25 +120,19 @@ func findFile(filename string, ix *interactives.Interactive) (string, error) {
 
 func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) (*interactives.Interactive, string) {
 	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
-		&interactives.QueryParams{
-			Offset: 0,
-			Limit:  1,
-			Filter: &interactives.InteractiveFilter{
-				Metadata: &interactives.InteractiveMetadata{ResourceID: id},
-			},
-		},
+		&interactives.InteractiveFilter{Metadata: &interactives.InteractiveMetadata{ResourceID: id}},
 	)
 	if err != nil {
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
 		return nil, ""
 	}
 
-	if all.TotalCount != 1 {
+	if len(all) != 1 {
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
 		return nil, ""
 	}
 
-	first := &all.Items[0]
+	first := &all[0]
 	return first, fmt.Sprintf("/%s/%s-%s%s", routes.ResourceTypeKey, first.Metadata.HumanReadableSlug, first.Metadata.ResourceID, routes.EmbeddedSuffix)
 
 }

@@ -20,7 +20,7 @@ var _ routes.InteractivesAPIClient = &InteractivesAPIClientMock{}
 //
 // 		// make and configure a mocked routes.InteractivesAPIClient
 // 		mockedInteractivesAPIClient := &InteractivesAPIClientMock{
-// 			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+// 			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, f *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
 // 				panic("mock out the ListInteractives method")
 // 			},
 // 		}
@@ -31,7 +31,7 @@ var _ routes.InteractivesAPIClient = &InteractivesAPIClientMock{}
 // 	}
 type InteractivesAPIClientMock struct {
 	// ListInteractivesFunc mocks the ListInteractives method.
-	ListInteractivesFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error)
+	ListInteractivesFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, f *interactives.InteractiveFilter) ([]interactives.Interactive, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -43,15 +43,15 @@ type InteractivesAPIClientMock struct {
 			UserAuthToken string
 			// ServiceAuthToken is the serviceAuthToken argument value.
 			ServiceAuthToken string
-			// Q is the q argument value.
-			Q *interactives.QueryParams
+			// F is the f argument value.
+			F *interactives.InteractiveFilter
 		}
 	}
 	lockListInteractives sync.RWMutex
 }
 
 // ListInteractives calls ListInteractivesFunc.
-func (mock *InteractivesAPIClientMock) ListInteractives(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+func (mock *InteractivesAPIClientMock) ListInteractives(ctx context.Context, userAuthToken string, serviceAuthToken string, f *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
 	if mock.ListInteractivesFunc == nil {
 		panic("InteractivesAPIClientMock.ListInteractivesFunc: method is nil but InteractivesAPIClient.ListInteractives was just called")
 	}
@@ -59,17 +59,17 @@ func (mock *InteractivesAPIClientMock) ListInteractives(ctx context.Context, use
 		Ctx              context.Context
 		UserAuthToken    string
 		ServiceAuthToken string
-		Q                *interactives.QueryParams
+		F                *interactives.InteractiveFilter
 	}{
 		Ctx:              ctx,
 		UserAuthToken:    userAuthToken,
 		ServiceAuthToken: serviceAuthToken,
-		Q:                q,
+		F:                f,
 	}
 	mock.lockListInteractives.Lock()
 	mock.calls.ListInteractives = append(mock.calls.ListInteractives, callInfo)
 	mock.lockListInteractives.Unlock()
-	return mock.ListInteractivesFunc(ctx, userAuthToken, serviceAuthToken, q)
+	return mock.ListInteractivesFunc(ctx, userAuthToken, serviceAuthToken, f)
 }
 
 // ListInteractivesCalls gets all the calls that were made to ListInteractives.
@@ -79,13 +79,13 @@ func (mock *InteractivesAPIClientMock) ListInteractivesCalls() []struct {
 	Ctx              context.Context
 	UserAuthToken    string
 	ServiceAuthToken string
-	Q                *interactives.QueryParams
+	F                *interactives.InteractiveFilter
 } {
 	var calls []struct {
 		Ctx              context.Context
 		UserAuthToken    string
 		ServiceAuthToken string
-		Q                *interactives.QueryParams
+		F                *interactives.InteractiveFilter
 	}
 	mock.lockListInteractives.RLock()
 	calls = mock.calls.ListInteractives

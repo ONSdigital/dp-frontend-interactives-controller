@@ -150,27 +150,21 @@ func DoGetHealthClient(name, url string) *health.Client {
 
 func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 	return &mocks_routes.InteractivesAPIClientMock{
-		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
+		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
 			pub := true
-			return interactives.List{
-				Items: []interactives.Interactive{
-					{
-						ID:        "123456",
-						Published: &pub,
-						Metadata: &interactives.InteractiveMetadata{
-							HumanReadableSlug: "a-slug", ResourceID: "resid123",
-						},
-						Archive: &interactives.InteractiveArchive{
-							Files: []*interactives.InteractiveFile{
-								{Name: "/index.html"},
-							},
+			return []interactives.Interactive{
+				{
+					ID:        "123456",
+					Published: &pub,
+					Metadata: &interactives.InteractiveMetadata{
+						HumanReadableSlug: "a-slug", ResourceID: "resid123",
+					},
+					Archive: &interactives.InteractiveArchive{
+						Files: []*interactives.InteractiveFile{
+							{Name: "/index.html"},
 						},
 					},
 				},
-				Count:      1,
-				Offset:     0,
-				Limit:      10,
-				TotalCount: 1,
 			}, nil
 		},
 	}, nil

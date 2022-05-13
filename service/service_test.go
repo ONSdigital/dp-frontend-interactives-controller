@@ -90,8 +90,8 @@ var (
 	//Interactive API client
 	funcDoGetInteractivesAPIClientOk = func(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 		return &mocks_routes.InteractivesAPIClientMock{
-			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.QueryParams) (interactives.List, error) {
-				return interactives.List{}, nil
+			ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+				return []interactives.Interactive{}, nil
 			},
 		}, nil
 	}
