@@ -161,7 +161,7 @@ func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.Interactiv
 					},
 					Archive: &interactives.InteractiveArchive{
 						Files: []*interactives.InteractiveFile{
-							{Name: "/index.html"},
+							{Name: "/index.html", URI: "index.html"},
 						},
 					},
 				},

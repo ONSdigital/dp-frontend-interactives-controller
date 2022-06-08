@@ -68,7 +68,10 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	if filename == id || filename == routes.EmbeddedSuffix[1:] { //root url
 		filename = "/"
 	} else {
-		filename = vars[routes.CatchAllVarKey][1:] //strip leading /
+		filename = vars[routes.CatchAllVarKey]
+		if len(filename) > 1 && filename[:1] == "/" {
+			filename = filename[1:] //strip leading /
+		}
 	}
 
 	var err error

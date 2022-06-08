@@ -229,7 +229,7 @@ func getTestInteractive(published bool, m *interactives.InteractiveMetadata) int
 		Metadata:  m,
 		Archive: &interactives.InteractiveArchive{
 			Files: []*interactives.InteractiveFile{
-				{Name: "/index.html"},
+				{Name: "index.html", URI: "index.html"},
 			},
 		},
 	}
