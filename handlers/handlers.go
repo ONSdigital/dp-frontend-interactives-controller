@@ -3,18 +3,16 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"io"
-	"mime"
-	"net/http"
-	"path"
-	"path/filepath"
-	"strings"
-
 	"github.com/ONSdigital/dp-api-clients-go/v2/interactives"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/config"
 	"github.com/ONSdigital/dp-frontend-interactives-controller/routes"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
+	"io"
+	"mime"
+	"net/http"
+	"path"
+	"path/filepath"
 )
 
 const (
@@ -70,7 +68,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	if filename == id || filename == routes.EmbeddedSuffix[1:] { //root url
 		filename = "/"
 	} else {
-		filename = vars[routes.CatchAllVarKey]
+		filename = vars[routes.CatchAllVarKey][1:] //strip leading /
 	}
 
 	var err error
@@ -109,7 +107,7 @@ func findFile(filename string, ix *interactives.Interactive) (string, error) {
 
 	if ix.Archive != nil {
 		for _, f := range ix.Archive.Files {
-			if strings.HasSuffix(f.Name, filename) {
+			if f.URI == filename {
 				return f.Name, nil
 			}
 		}

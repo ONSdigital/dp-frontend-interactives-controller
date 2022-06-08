@@ -1,0 +1,58 @@
+{
+  "essential": {
+    "graphic_data_url": "data.csv",
+    "dateFormat": "%d/%m/%Y",
+
+    "sort_data": false,
+    "colour_palette": [ "#3a4c54","#09a88a", "#206095"],
+    "legendLabels": ["All deaths - Five-year average", "Deaths not involving COVID-19", "Deaths involving COVID-19"],
+    "sourceText": "Office for National Statistics – Deaths registered weekly in England and Wales",
+    "xAxisLabel":"Week ending",
+    "yAxisLabel": "Weekly deaths",
+    "yAxisScale": [0,25000],
+    "mediumBreakpoint": 630,
+    "mobileBreakpoint": 425
+  },
+  "optional": {
+    "margin": {
+      "sm": {
+        "top": 100,
+        "right": 32,
+        "bottom": 40,
+        "left": 40
+      },
+      "md": {
+        "top": 80,
+        "right": 32,
+        "bottom": 50,
+        "left": 40
+      },
+      "lg": {
+        "top": 60,
+        "right": 32,
+        "bottom": 40,
+        "left": 40
+      }
+    },
+
+    "aspectRatio": {
+      "sm": [12, 8],
+      "md": [16, 8],
+      "lg": [16, 8]
+    },
+
+
+    "x_ticks_every": {
+      "sm": 52,
+      "md": 25,
+      "lg": 21
+    },
+    "y_num_ticks": {
+      "sm": 5,
+      "md": 5,
+      "lg": 6
+    },
+    "centre_line": false,
+    "centre_line_value": 0
+  }
+}
