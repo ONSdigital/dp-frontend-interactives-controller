@@ -85,7 +85,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	readCloser, err := clients.Storage.Get(r.Context(), filename)
 	if err != nil {
 		//todo 404 from error pass back upstream? this could be auth - so 404
-		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to get stream from storage provider %w", err))
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to get stream from storage provider: %s %w", filename, err))
 		return
 	}
 	defer closeAndLogError(ctx, readCloser)
