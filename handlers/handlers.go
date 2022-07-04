@@ -116,7 +116,7 @@ func findFile(filename string, ix *interactives.Interactive) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("cannot find root index.html file for %s", ix.ID)
+	return filename, fmt.Errorf("cannot find root index.html file for %s", ix.ID)
 }
 
 func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) (*interactives.Interactive, string) {
