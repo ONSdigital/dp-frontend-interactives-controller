@@ -77,7 +77,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	var err error
 	filename, err = findFile(filename, ix)
 	if err != nil {
-		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find file %s %w", filename, err))
 		return
 	}
 
