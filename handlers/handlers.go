@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -108,6 +109,10 @@ func findFile(filename string, ix *interactives.Interactive) (string, error) {
 		filename = RootFile
 	}
 
+	if strings.HasSuffix(filename, "/") {
+		filename = filename + RootFile
+	}
+
 	if ix.Archive != nil {
 		for _, f := range ix.Archive.Files {
 			if f.URI == filename {
@@ -124,12 +129,12 @@ func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients r
 		&interactives.InteractiveFilter{Metadata: &interactives.InteractiveMetadata{ResourceID: id}},
 	)
 	if err != nil {
-		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %w", err))
+		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %s %w", id, err))
 		return nil, ""
 	}
 
 	if len(all) != 1 {
-		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %w", err))
+		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find interactive %s", id))
 		return nil, ""
 	}
 
