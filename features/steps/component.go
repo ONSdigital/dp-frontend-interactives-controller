@@ -150,19 +150,20 @@ func DoGetHealthClient(name, url string) *health.Client {
 
 func DoGetInteractivesAPIClientFunc(apiRouter *health.Client) (routes.InteractivesAPIClient, error) {
 	return &mocks_routes.InteractivesAPIClientMock{
-		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+		ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.Filter) ([]interactives.Interactive, error) {
 			pub := true
 			return []interactives.Interactive{
 				{
 					ID:        "123456",
 					Published: &pub,
-					Metadata: &interactives.InteractiveMetadata{
+					Metadata: &interactives.Metadata{
 						HumanReadableSlug: "a-slug", ResourceID: "resid123",
 					},
-					Archive: &interactives.InteractiveArchive{
-						Files: []*interactives.InteractiveFile{
-							{Name: "/index.html", URI: "index.html"},
-						},
+					HTMLFiles: []*interactives.HTMLFile{
+						{Name: "/index.html", URI: "index.html"},
+					},
+					Archive: &interactives.Archive{
+						UploadRootDirectory: "", //empty for embeddedfs
 					},
 				},
 			}, nil

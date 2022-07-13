@@ -65,6 +65,7 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 		http.Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 
+	//filename as expected from save to static files service - dp-upload-service
 	filename := path.Base(r.URL.Path)
 	if filename == id || filename == routes.EmbeddedSuffix[1:] { //root url
 		filename = "/"
@@ -74,16 +75,11 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 			filename = filename[1:] //strip leading /
 		}
 	}
-
-	var err error
-	filename, err = findFile(filename, ix)
-	if err != nil {
-		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("cannot find file %s %w", filename, err))
-		return
-	}
+	filename = sanitiseFilename(filename)
+	uploadedFilename := fmt.Sprintf("%s/%s", ix.Archive.UploadRootDirectory, filename)
 
 	//stream content to response
-	readCloser, err := clients.Storage.Get(r.Context(), filename)
+	readCloser, err := clients.Storage.Get(r.Context(), uploadedFilename)
 	if err != nil {
 		//todo 404 from error pass back upstream? this could be auth - so 404
 		setStatusCode(r, w, http.StatusNotFound, fmt.Errorf("failed to get stream from storage provider: %s %w", filename, err))
@@ -104,29 +100,21 @@ func streamFromStorageProvider(w http.ResponseWriter, r *http.Request, clients r
 	}
 }
 
-func findFile(filename string, ix *interactives.Interactive) (string, error) {
+func sanitiseFilename(filename string) string {
 	if filename == "" || filename == "/" {
-		filename = RootFile
+		return RootFile
 	}
 
 	if strings.HasSuffix(filename, "/") {
-		filename = filename + RootFile
+		return filename + RootFile
 	}
 
-	if ix.Archive != nil {
-		for _, f := range ix.Archive.Files {
-			if f.URI == filename {
-				return f.Name, nil
-			}
-		}
-	}
-
-	return filename, fmt.Errorf("cannot find root index.html file for %s", ix.ID)
+	return filename
 }
 
 func getInteractive(w http.ResponseWriter, r *http.Request, id string, clients routes.Clients, serviceAuthToken string) (*interactives.Interactive, string) {
 	all, err := clients.API.ListInteractives(r.Context(), "", serviceAuthToken,
-		&interactives.InteractiveFilter{Metadata: &interactives.InteractiveMetadata{ResourceID: id}},
+		&interactives.Filter{Metadata: &interactives.Metadata{ResourceID: id}},
 	)
 	if err != nil {
 		setStatusCode(r, w, http.StatusInternalServerError, fmt.Errorf("failed to get from interactives api %s %w", id, err))

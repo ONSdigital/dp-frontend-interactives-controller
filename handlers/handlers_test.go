@@ -110,7 +110,7 @@ func TestInteractives(t *testing.T) {
 
 			for name, testReq := range cases {
 				apiMock := &mocks_routes.InteractivesAPIClientMock{
-					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+					ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.Filter) ([]interactives.Interactive, error) {
 						return listOfTestInteractives(testReq.totalCount), nil
 					},
 				}
@@ -141,9 +141,9 @@ func TestInteractives(t *testing.T) {
 
 		Convey("url with only resource-id must redirect", func() {
 			pub := true
-			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
+			mData := &interactives.Metadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
 			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.Filter) ([]interactives.Interactive, error) {
 					return []interactives.Interactive{
 						getTestInteractive(pub, mData),
 					}, nil
@@ -174,9 +174,9 @@ func TestInteractives(t *testing.T) {
 
 		Convey("mismatched slug must redirect", func() {
 			pub := true
-			mData := &interactives.InteractiveMetadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
+			mData := &interactives.Metadata{HumanReadableSlug: "a-slug", ResourceID: "resid123"}
 			apiMock := &mocks_routes.InteractivesAPIClientMock{
-				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.InteractiveFilter) ([]interactives.Interactive, error) {
+				ListInteractivesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, q *interactives.Filter) ([]interactives.Interactive, error) {
 					return []interactives.Interactive{
 						getTestInteractive(pub, mData),
 					}, nil
@@ -216,9 +216,9 @@ func listOfTestInteractives(num int) []interactives.Interactive {
 	return retVal
 }
 
-func getTestInteractive(published bool, m *interactives.InteractiveMetadata) interactives.Interactive {
+func getTestInteractive(published bool, m *interactives.Metadata) interactives.Interactive {
 	if m == nil {
-		m = &interactives.InteractiveMetadata{
+		m = &interactives.Metadata{
 			HumanReadableSlug: "slug",
 			ResourceID:        "abcd123e",
 		}
@@ -227,10 +227,11 @@ func getTestInteractive(published bool, m *interactives.InteractiveMetadata) int
 		ID:        "123456",
 		Published: &published,
 		Metadata:  m,
-		Archive: &interactives.InteractiveArchive{
-			Files: []*interactives.InteractiveFile{
-				{Name: "index.html", URI: "index.html"},
-			},
+		HTMLFiles: []*interactives.HTMLFile{
+			{Name: "/index.html", URI: "index.html"},
+		},
+		Archive: &interactives.Archive{
+			UploadRootDirectory: "root/dir",
 		},
 	}
 }
