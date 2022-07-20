@@ -2,10 +2,6 @@ module github.com/ONSdigital/dp-frontend-interactives-controller
 
 go 1.17
 
-replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
-
-replace github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go v3.2.1-0.20210802184156-9742bd7fca1c+incompatible
-
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.157.0
 	github.com/ONSdigital/dp-component-test v0.6.4
