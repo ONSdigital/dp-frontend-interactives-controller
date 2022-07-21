@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-frontend-interactives-controller
 go 1.17
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.157.0
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.157.1
 	github.com/ONSdigital/dp-component-test v0.6.4
 	github.com/ONSdigital/dp-healthcheck v1.3.0
 	github.com/ONSdigital/dp-net v1.4.1
