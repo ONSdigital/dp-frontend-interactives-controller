@@ -1,5 +1,9 @@
 # dp-frontend-interactives-controller
 
+***
+:warning: This repository will be archived in November 2023 as it is no longer in development. :warning:
+***
+
 Controller for handling interactive visualisation pages on ONS website
 
 ### Getting started
